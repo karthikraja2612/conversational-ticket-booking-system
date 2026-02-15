@@ -2,10 +2,19 @@ from fastapi import FastAPI
 from .database import engine,SessionLocal
 from .models import Base,Seat,Venue
 from .routes import seats
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 app.include_router(seats.router)
 Base.metadata.create_all(bind=engine)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def home():

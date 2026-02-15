@@ -4,7 +4,8 @@ from sqlalchemy import and_
 from datetime import datetime,timedelta
 from ..database import SessionLocal
 from ..models import Seat, SeatLock, BookingSeat, Booking,Event, Payment
-from ..schemas import LockSeatsRequest, ConfirmBookingRequest
+from ..schemas import LockSeatsRequest, ConfirmBookingRequest, SeatResponse, SeatStatusResponse
+from typing import List
 
 router = APIRouter()
 
@@ -16,7 +17,7 @@ def get_db():
         db.close()
 
 
-@router.get("/events/{event_id}/available-seats")
+@router.get("/events/{event_id}/available-seats", response_model=List[SeatResponse])
 def get_available_seats(event_id: int, db: Session = Depends(get_db)):
     
     current_time = datetime.utcnow()
@@ -197,3 +198,55 @@ def process_payment(event_id: int, booking_id: int, db: Session = Depends(get_db
     except Exception as e:
         db.rollback()
         raise e
+    
+@router.get("/events/{event_id}/seats-status", response_model=List[SeatStatusResponse])
+def get_seat_status(event_id: int, db: Session = Depends(get_db)):
+
+    current_time = datetime.utcnow()
+
+    # 1️⃣ Release expired locks
+    db.query(SeatLock).filter(
+        SeatLock.status == "locked",
+        SeatLock.expires_at < current_time
+    ).update({"status": "released"})
+    db.commit()
+
+    seats = db.query(Seat).all()
+
+    result = []
+
+    for seat in seats:
+
+        # Check if booked
+        booked = db.query(BookingSeat)\
+            .join(Booking, BookingSeat.booking_id == Booking.id)\
+            .filter(
+                Booking.event_id == event_id,
+                Booking.status == "confirmed",
+                BookingSeat.seat_id == seat.id
+            ).first()
+
+        if booked:
+            status = "booked"
+        else:
+            # Check if locked
+            locked = db.query(SeatLock).filter(
+                SeatLock.event_id == event_id,
+                SeatLock.seat_id == seat.id,
+                SeatLock.status == "locked",
+                SeatLock.expires_at > current_time
+            ).first()
+
+            if locked:
+                status = "locked"
+            else:
+                status = "available"
+
+        result.append({
+            "id": seat.id,
+            "row_number": seat.row_number,
+            "seat_number": seat.seat_number,
+            "status": status
+        })
+
+    return result
