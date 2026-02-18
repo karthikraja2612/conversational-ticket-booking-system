@@ -5,17 +5,11 @@ from datetime import datetime,timedelta
 from ..database import SessionLocal
 from ..models import Seat, SeatLock, BookingSeat, Booking,Event, Payment
 from ..schemas import LockSeatsRequest, ConfirmBookingRequest, SeatResponse, SeatStatusResponse
+from ..security import get_current_user
+from ..database import get_db
 from typing import List
 
 router = APIRouter()
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 
 @router.get("/events/{event_id}/available-seats", response_model=List[SeatResponse])
 def get_available_seats(event_id: int, db: Session = Depends(get_db)):
@@ -57,8 +51,8 @@ def get_available_seats(event_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/events/{event_id}/lock-seats")
-def lock_seats(event_id: int, request: LockSeatsRequest, db: Session = Depends(get_db)):
-
+def lock_seats(event_id: int, request: LockSeatsRequest, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    user_id=current_user.id
     current_time = datetime.utcnow()
     expiry_time = current_time + timedelta(minutes=5)
 
@@ -78,7 +72,7 @@ def lock_seats(event_id: int, request: LockSeatsRequest, db: Session = Depends(g
         new_lock = SeatLock(
             seat_id=seat_id,
             event_id=event_id,
-            user_id=request.user_id,
+            user_id=current_user.id,
             locked_at=current_time,
             expires_at=expiry_time,
             status="locked"
@@ -99,7 +93,7 @@ def lock_seats(event_id: int, request: LockSeatsRequest, db: Session = Depends(g
     }
 
 @router.post("/events/{event_id}/confirm-booking")
-def confirm_booking(event_id: int, request: ConfirmBookingRequest, db: Session = Depends(get_db)):
+def confirm_booking(event_id: int, request: ConfirmBookingRequest, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
 
     current_time = datetime.utcnow()
 
@@ -108,7 +102,7 @@ def confirm_booking(event_id: int, request: ConfirmBookingRequest, db: Session =
         locks = db.query(SeatLock).filter(
             SeatLock.event_id == event_id,
             SeatLock.seat_id.in_(request.seat_ids),
-            SeatLock.user_id == request.user_id,
+            SeatLock.user_id == current_user.id,
             SeatLock.status == "locked",
             SeatLock.expires_at > current_time
         ).all()
@@ -123,7 +117,7 @@ def confirm_booking(event_id: int, request: ConfirmBookingRequest, db: Session =
 
         # 3️⃣ Create booking
         new_booking = Booking(
-            user_id=request.user_id,
+            user_id=current_user.id,
             event_id=event_id,
             total_amount=total_amount,
             status="pending"
@@ -156,13 +150,14 @@ def confirm_booking(event_id: int, request: ConfirmBookingRequest, db: Session =
         raise e
     
 @router.post("/events/{event_id}/process-payment")
-def process_payment(event_id: int, booking_id: int, db: Session = Depends(get_db)):
-
+def process_payment(event_id: int, booking_id: int, db: Session = Depends(get_db),current_user=Depends(get_current_user)):
+    Booking.user_id == current_user.id
     try:
         # 1️⃣ Get booking
         booking = db.query(Booking).filter(
             Booking.id == booking_id,
             Booking.event_id == event_id,
+            Booking.user_id == current_user.id,
             Booking.status == "pending"
         ).first()
 

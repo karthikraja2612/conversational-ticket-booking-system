@@ -1,5 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,EmailStr
 from typing import List
+
+class ChatRequest(BaseModel):
+    message: str
 
 class LockSeatsRequest(BaseModel):
     user_id: int
@@ -25,3 +28,16 @@ class SeatStatusResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+class UserRegister(BaseModel):
+    name: str
+    email: EmailStr
+    password: str
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
