@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from .database import engine,SessionLocal
 from .models import Base,Seat,Venue
-from .routes import seats
+from .routes import seats,auth,chat,users
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 app.include_router(seats.router)
+app.include_router(auth.router)
+app.include_router(users.router)
+app.include_router(chat.router)
 Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
