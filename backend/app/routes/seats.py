@@ -185,7 +185,7 @@ def process_payment(event_id: int, booking_id: int, db: Session = Depends(get_db
         locks = db.query(SeatLock).filter(
             SeatLock.event_id == event_id,
             SeatLock.user_id == booking.user_id,
-            SeatLock.status == "locked"
+            SeatLock.status == "pending"
         ).all()
 
         for lock in locks:
