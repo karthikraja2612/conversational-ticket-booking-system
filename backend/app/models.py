@@ -3,6 +3,16 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
 
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    state = Column(String(50), default="idle")
+    context = Column(JSON, default=dict)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -59,6 +69,7 @@ class SeatLock(Base):
     locked_at = Column(DateTime, default=datetime.utcnow)
     expires_at = Column(DateTime)
     status = Column(String(50))  # locked / released / confirmed
+    extension_used = Column(Boolean, default=False)
 
 
 class Booking(Base):
@@ -89,10 +100,3 @@ class Payment(Base):
     transaction_id = Column(String(200))
     paid_at = Column(DateTime)
 
-class ChatSession(Base):
-    __tablename__ = "chat_sessions"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, nullable=False)
-    state = Column(String(50))
-    context = Column(JSON)
