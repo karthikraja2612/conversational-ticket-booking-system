@@ -41,7 +41,9 @@ class Event(Base):
     name = Column(String(200))
     venue_id = Column(Integer, ForeignKey("venues.id"))
     event_date = Column(DateTime)
-    price = Column(Float)
+    base_price = Column(Float)
+    status = Column(String(50), default="draft")  # draft / published
+    image_url = Column(String(300), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     venue = relationship("Venue")
@@ -81,6 +83,7 @@ class Booking(Base):
     total_amount = Column(Float)
     status = Column(String(50))  # pending / confirmed / cancelled
     created_at = Column(DateTime, default=datetime.utcnow)
+    confirmed_at = Column(DateTime, nullable=True)
 
 
 class BookingSeat(Base):
@@ -100,3 +103,32 @@ class Payment(Base):
     transaction_id = Column(String(200))
     paid_at = Column(DateTime)
 
+
+class Admin(Base):
+    __tablename__ = "admins"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(100), unique=True, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SeatCategory(Base):
+    __tablename__ = "seat_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"))
+    name = Column(String(100))  # VIP, Regular
+    base_price = Column(Float)
+    capacity = Column(Integer)
+
+
+class PricingRule(Base):
+    __tablename__ = "pricing_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(Integer, ForeignKey("events.id"))
+    trigger_type = Column(String(100))  # e.g. demand_threshold
+    threshold = Column(Float)
+    multiplier = Column(Float)
