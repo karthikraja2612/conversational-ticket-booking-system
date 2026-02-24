@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../../core/constants/app_constants.dart';
+import '../models/event_model.dart';
 import '../models/seat_model.dart';
 import '../models/booking_model.dart';
 
@@ -15,14 +16,43 @@ class ApiException implements Exception {
 
 class ApiService {
   final String baseUrl;
-  final http.Client _client = http.Client();
+  final http.Client _client;
+  String? _authToken;
 
-  ApiService({this.baseUrl = AppConstants.baseUrl});
+  ApiService({this.baseUrl = AppConstants.baseUrl, http.Client? client})
+      : _client = client ?? http.Client();
+
+  void setAuthToken(String? token) {
+    _authToken = token;
+  }
+
+  Map<String, String> get _authHeaders => {
+        'Content-Type': 'application/json',
+        if (_authToken != null) 'Authorization': 'Bearer $_authToken',
+      };
+
+  ApiException _handleError(http.Response response) {
+    try {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return ApiException(
+        data['detail'] as String? ?? 'Request failed (${response.statusCode})',
+        statusCode: response.statusCode,
+      );
+    } catch (_) {
+      return ApiException(
+        'Request failed (${response.statusCode})',
+        statusCode: response.statusCode,
+      );
+    }
+  }
 
   Future<List<SeatModel>> fetchSeatsStatus(int eventId) async {
     try {
       final response = await _client
-          .get(Uri.parse('$baseUrl/events/$eventId/seats-status'))
+          .get(
+            Uri.parse('$baseUrl/events/$eventId/seats-status'),
+            headers: _authHeaders,
+          )
           .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
@@ -33,8 +63,9 @@ class ApiService {
       }
     } on TimeoutException {
       throw ApiException('Connection timed out. Please check your internet.');
+    } on ApiException {
+      rethrow;
     } catch (e) {
-      if (e is ApiException) rethrow;
       throw ApiException('Network error: $e');
     }
   }
@@ -43,7 +74,7 @@ class ApiService {
     try {
       final response = await _client.post(
         Uri.parse('$baseUrl/events/$eventId/lock-seats'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _authHeaders,
         body: jsonEncode({
           'user_id': userId,
           'seat_ids': seatIds,
@@ -52,16 +83,17 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        // Backend uses datetime.utcnow() — no timezone marker in string.
-        // Append 'Z' to force UTC parsing, then convert to device local time.
         final raw = data['expires_at'] as String;
         final utcStr = raw.contains('+') || raw.endsWith('Z') ? raw : '${raw}Z';
         return DateTime.parse(utcStr).toLocal();
       } else {
         throw _handleError(response);
       }
+    } on TimeoutException {
+      throw ApiException('Connection timed out.');
+    } on ApiException {
+      rethrow;
     } catch (e) {
-      if (e is ApiException) rethrow;
       throw ApiException('Failed to lock seats: $e');
     }
   }
@@ -70,7 +102,7 @@ class ApiService {
     try {
       final response = await _client.post(
         Uri.parse('$baseUrl/events/$eventId/confirm-booking'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _authHeaders,
         body: jsonEncode({
           'user_id': userId,
           'seat_ids': seatIds,
@@ -83,8 +115,11 @@ class ApiService {
       } else {
         throw _handleError(response);
       }
+    } on TimeoutException {
+      throw ApiException('Connection timed out.');
+    } on ApiException {
+      rethrow;
     } catch (e) {
-      if (e is ApiException) rethrow;
       throw ApiException('Booking confirmation failed: $e');
     }
   }
@@ -93,24 +128,44 @@ class ApiService {
     try {
       final response = await _client.post(
         Uri.parse('$baseUrl/events/$eventId/process-payment?booking_id=$bookingId'),
-        headers: {'Content-Type': 'application/json'},
-      ).timeout(const Duration(seconds: 30));
+        headers: _authHeaders,
+      ).timeout(const Duration(seconds: 15));
 
-      if (response.statusCode != 200) {
+      if (response.statusCode == 200) {
+        return;
+      } else {
         throw _handleError(response);
       }
+    } on TimeoutException {
+      throw ApiException('Connection timed out.');
+    } on ApiException {
+      rethrow;
     } catch (e) {
-      if (e is ApiException) rethrow;
-      throw ApiException('Payment processing failed: $e');
+      throw ApiException('Payment failed: $e');
     }
   }
 
-  ApiException _handleError(http.Response response) {
+  Future<List<EventModel>> fetchEvents() async {
     try {
-      final body = jsonDecode(response.body);
-      return ApiException(body['detail'] ?? 'Unknown error occurred', statusCode: response.statusCode);
-    } catch (_) {
-      return ApiException('Server error: ${response.statusCode}', statusCode: response.statusCode);
+      final response = await _client
+          .get(
+            Uri.parse('$baseUrl/events'),
+            headers: {'Content-Type': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => EventModel.fromJson(json)).toList();
+      } else {
+        throw _handleError(response);
+      }
+    } on TimeoutException {
+      throw ApiException('Connection timed out. Please check your internet.');
+    } on ApiException {
+      rethrow;
+    } catch (e) {
+      throw ApiException('Failed to load events: $e');
     }
   }
 }

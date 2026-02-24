@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../domain/state/auth_state.dart';
+import '../../domain/state/booking_state.dart';
+import '../../domain/state/chat_state.dart';
 import '../animations/fade_slide_transition.dart';
 import 'login_screen.dart';
 import 'home_screen.dart';
@@ -25,6 +27,9 @@ class _SplashScreenState extends State<SplashScreen> {
       await Future.delayed(const Duration(milliseconds: 600));
       if (!mounted) return;
       if (auth.isAuthenticated) {
+        context.read<BookingState>().setAuthToken(auth.token);
+        context.read<BookingState>().setCurrentUserId(auth.userId);
+        context.read<ChatState>().setAuthToken(auth.token);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -44,35 +49,32 @@ class _SplashScreenState extends State<SplashScreen> {
       backgroundColor: AppColors.background,
       body: Center(
         child: FadeSlideTransition(
-          duration: const Duration(milliseconds: 600),
+          duration: const Duration(milliseconds: 700),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.2),
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    width: 1.5,
                   ),
                 ),
                 child: const Icon(
-                  Icons.confirmation_number_outlined,
-                  size: 56,
+                  Icons.confirmation_number_rounded,
                   color: AppColors.primary,
+                  size: 48,
                 ),
               ),
               const SizedBox(height: 24),
-              const Text('TicketBot', style: AppTextStyles.h2),
-              const SizedBox(height: 40),
-              const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  color: AppColors.primary,
-                  strokeWidth: 2.5,
-                ),
+              const Text('TicketBot', style: AppTextStyles.h1),
+              const SizedBox(height: 32),
+              const CircularProgressIndicator(
+                color: AppColors.primary,
+                strokeWidth: 2,
               ),
             ],
           ),

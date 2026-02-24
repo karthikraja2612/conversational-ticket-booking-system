@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, Column, Integer, String, DateTime, ForeignKey, Boolean, Float
+from sqlalchemy import JSON, Column, Integer, String, DateTime, ForeignKey, Boolean, Float, func
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .database import Base
@@ -13,15 +13,18 @@ class ChatSession(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+# ...existing code...
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100))
-    email = Column(String(100), unique=True, index=True)
-    hashed_password = Column(String(255), nullable=False)
+    name = Column(String(100), nullable=False)
+    email = Column(String(100), unique=True, index=True, nullable=False)
+    # FIX 1: DB column is 'password', not 'hashed_password'
+    hashed_password = Column("password", String(255), nullable=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+# ...existing code...
 
 
 class Venue(Base):

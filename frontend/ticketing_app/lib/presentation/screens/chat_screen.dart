@@ -3,9 +3,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../data/models/event_model.dart';
 import '../../domain/state/chat_state.dart';
 import '../../domain/state/booking_state.dart';
+import '../../domain/state/event_state.dart';
 import '../widgets/chat/chat_message_bubble.dart';
 import '../widgets/chat/typing_indicator.dart';
 import '../widgets/chat/chat_input.dart';
@@ -97,7 +97,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ],
                 ),
                 Text(
-                  EventModel.demo.name,
+                  context.watch<EventState>().primaryEvent?.name ?? '',
                   style: AppTextStyles.caption
                       .copyWith(color: AppColors.textSecondary),
                 ),

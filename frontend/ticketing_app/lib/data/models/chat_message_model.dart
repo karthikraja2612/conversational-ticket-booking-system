@@ -1,15 +1,19 @@
 ﻿enum MessageSender { user, bot }
 
+enum MessageType { text, eventList, bookingHistory }
+
 class ChatMessageModel {
-  final String id;
   final String content;
   final MessageSender sender;
   final DateTime timestamp;
+  final Map<String, dynamic>? extraData;
+  final MessageType messageType;
 
-  ChatMessageModel({
-    String? id,
+  const ChatMessageModel({
     required this.content,
     required this.sender,
     required this.timestamp,
-  }) : id = id ?? DateTime.now().microsecondsSinceEpoch.toString();
+    this.extraData,
+    this.messageType = MessageType.text,
+  });
 }

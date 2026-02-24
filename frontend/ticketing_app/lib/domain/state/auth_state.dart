@@ -1,137 +1,170 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-enum AuthPhase { idle, loading, authenticated, error }
+import '../../data/models/user_model.dart';
+import '../../data/services/auth_service.dart';
 
 class AuthState extends ChangeNotifier {
-  AuthPhase _phase = AuthPhase.idle;
+  // ── TODO 6 (DONE): Single AuthService instance, not re-created per call ──
+  final AuthService _authService;
+
+  UserModel? _user;
+  bool _isLoading = false;
   String? _errorMessage;
-  String? _userName;
-  String? _userEmail;
-  bool _sessionChecked = false;
 
-  AuthPhase get phase => _phase;
+  AuthState({AuthService? authService})
+      : _authService = authService ?? AuthService();
+
+  // ── Getters ──────────────────────────────────────────────────────────────
+  UserModel? get user => _user;
+  bool get isLoading => _isLoading;
+  bool get isAuthenticated => _user != null && _user!.token.isNotEmpty;
   String? get errorMessage => _errorMessage;
-  String? get userName => _userName;
-  String? get userEmail => _userEmail;
-  bool get isAuthenticated => _phase == AuthPhase.authenticated;
-  bool get isLoading => _phase == AuthPhase.loading;
-  bool get sessionChecked => _sessionChecked;
+  String? get token => _user?.token;
+  int? get userId => _user?.id;
+  String get userName => _user?.name ?? '';
 
-  Future<void> checkSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('user_email');
-    final name = prefs.getString('user_name');
-    if (email != null && name != null) {
-      _userEmail = email;
-      _userName = name;
-      _phase = AuthPhase.authenticated;
-    }
-    _sessionChecked = true;
-    notifyListeners();
+  /// First word of name, digits stripped, first letter capitalised.
+  /// e.g. "Navanee34 Kumar" → "Navanee", "navanee34" → "Navanee"
+  String get displayName {
+    final raw = (_user?.name ?? '').trim();
+    if (raw.isEmpty) return '';
+    final firstWord = raw.split(RegExp(r'\s+')).first;
+    final stripped = firstWord.replaceAll(RegExp(r'[0-9]'), '').trim();
+    if (stripped.isEmpty) return '';
+    return stripped[0].toUpperCase() + stripped.substring(1).toLowerCase();
   }
 
-  Future<bool> login({required String email, required String password}) async {
-    if (!_validateEmail(email)) {
-      _errorMessage = 'Please enter a valid email address.';
-      _phase = AuthPhase.error;
-      notifyListeners();
-      return false;
-    }
-    if (password.length < 6) {
-      _errorMessage = 'Password must be at least 6 characters.';
-      _phase = AuthPhase.error;
-      notifyListeners();
-      return false;
-    }
-
-    _phase = AuthPhase.loading;
-    _errorMessage = null;
-    notifyListeners();
-
-    // Simulate auth — backend has no auth endpoints; use mock session
-    await Future.delayed(const Duration(milliseconds: 1200));
-
-    final name = email.split('@').first;
-    _userName = name[0].toUpperCase() + name.substring(1);
-    _userEmail = email;
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_email', email);
-    await prefs.setString('user_name', _userName!);
-
-    _phase = AuthPhase.authenticated;
-    notifyListeners();
-    return true;
-  }
-
+  // ── TODO 7 (DONE): signup validates passwords before calling API ─────────
   Future<bool> signup({
     required String name,
     required String email,
     required String password,
     required String confirmPassword,
   }) async {
-    if (name.trim().length < 2) {
-      _errorMessage = 'Name must be at least 2 characters.';
-      _phase = AuthPhase.error;
-      notifyListeners();
-      return false;
-    }
-    if (!_validateEmail(email)) {
-      _errorMessage = 'Please enter a valid email address.';
-      _phase = AuthPhase.error;
+    // Client-side validation — avoids unnecessary network call
+    if (password != confirmPassword) {
+      _errorMessage = 'Passwords do not match';
       notifyListeners();
       return false;
     }
     if (password.length < 6) {
-      _errorMessage = 'Password must be at least 6 characters.';
-      _phase = AuthPhase.error;
+      _errorMessage = 'Password must be at least 6 characters';
       notifyListeners();
       return false;
     }
-    if (password != confirmPassword) {
-      _errorMessage = 'Passwords do not match.';
-      _phase = AuthPhase.error;
+    if (name.trim().length < 2) {
+      _errorMessage = 'Name must be at least 2 characters';
       notifyListeners();
       return false;
     }
 
-    _phase = AuthPhase.loading;
+    _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
-    await Future.delayed(const Duration(milliseconds: 1400));
-
-    _userName = name.trim();
-    _userEmail = email.trim();
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_email', _userEmail!);
-    await prefs.setString('user_name', _userName!);
-
-    _phase = AuthPhase.authenticated;
-    notifyListeners();
-    return true;
+    try {
+      final user = await _authService.register(
+        name: name.trim(),
+        email: email.trim(),
+        password: password,
+      );
+      _user = user;
+      await _persistSession(user);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on AuthException catch (e) {
+      _errorMessage = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = 'Unexpected error. Please try again.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
   }
 
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('user_email');
-    await prefs.remove('user_name');
-    _userName = null;
-    _userEmail = null;
-    _phase = AuthPhase.idle;
+  // ── TODO 8 (DONE): login uses form-encoded body via AuthService ──────────
+  Future<bool> login({
+    required String email,
+    required String password,
+  }) async {
+    if (email.trim().isEmpty || password.isEmpty) {
+      _errorMessage = 'Email and password are required';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
+
+    try {
+      final user = await _authService.login(
+        email: email.trim(),
+        password: password,
+      );
+      _user = user;
+      await _persistSession(user);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } on AuthException catch (e) {
+      _errorMessage = e.message;
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = 'Unexpected error. Please try again.';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── TODO 9 (DONE): Persist session to SharedPreferences ─────────────────
+  Future<void> _persistSession(UserModel user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', user.token);
+    await prefs.setInt('user_id', user.id);
+    await prefs.setString('user_name', user.name);
+    await prefs.setString('user_email', user.email);
+  }
+
+  // ── TODO 10 (DONE): checkSession restores persisted login on app start ───
+  Future<void> checkSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+    final id = prefs.getInt('user_id');
+    final name = prefs.getString('user_name');
+    final email = prefs.getString('user_email');
+
+    if (token != null && token.isNotEmpty && id != null) {
+      _user = UserModel(
+        id: id,
+        name: name ?? '',
+        email: email ?? '',
+        token: token,
+      );
+      notifyListeners();
+    }
   }
 
   void clearError() {
-    if (_phase == AuthPhase.error) _phase = AuthPhase.idle;
     _errorMessage = null;
     notifyListeners();
   }
 
-  bool _validateEmail(String email) {
-    return RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
-        .hasMatch(email.trim());
+  Future<void> logout() async {
+    _user = null;
+    _errorMessage = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('user_id');
+    await prefs.remove('user_name');
+    await prefs.remove('user_email');
+    notifyListeners();
   }
 }

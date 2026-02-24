@@ -5,9 +5,9 @@ import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/extensions.dart';
-import '../../data/models/event_model.dart';
 import '../../domain/state/booking_state.dart';
 import '../../domain/state/chat_state.dart';
+import '../../domain/state/event_state.dart';
 import '../widgets/common/animated_loader.dart';
 import '../widgets/common/gradient_button.dart';
 import '../widgets/common/lock_timer_banner.dart';
@@ -29,7 +29,14 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<BookingState>().fetchSeats();
+        final booking = context.read<BookingState>();
+        final chat = context.read<ChatState>();
+        booking.fetchSeats().then((_) {
+          // After seats are loaded, pre-select recommended seats from chat
+          if (mounted && chat.recommendedSeats.isNotEmpty) {
+            booking.applyRecommendedSeats(chat.recommendedSeats);
+          }
+        });
       }
     });
   }
@@ -101,7 +108,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   final paid = await state.processPayment();
                   if (!mounted) return;
                   if (paid) {
-                    chat.onPaymentComplete();
+                    chat.onPaymentDone();
                     // Close payment modal first
                     if (modalCtx.mounted) Navigator.pop(modalCtx);
                     // Navigate directly to ticket/QR screen, replacing this screen
@@ -145,16 +152,22 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.surface,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Select Seats'),
-            Text(
-              EventModel.demo.name,
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.textSecondary),
-            ),
-          ],
+        title: Consumer<EventState>(
+          builder: (_, eventState, __) {
+            final event = eventState.primaryEvent;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Select Seats'),
+                if (event != null)
+                  Text(
+                    event.name,
+                    style: AppTextStyles.caption
+                        .copyWith(color: AppColors.textSecondary),
+                  ),
+              ],
+            );
+          },
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, size: 18),
@@ -163,11 +176,16 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: Center(
-              child: Text(
-                '\$${EventModel.demo.price.toStringAsFixed(0)}/seat',
-                style: AppTextStyles.h4.copyWith(color: AppColors.primary),
-              ),
+            child: Consumer<EventState>(
+              builder: (_, eventState, __) {
+                final price = eventState.primaryEvent?.price ?? AppConstants.seatPrice;
+                return Center(
+                  child: Text(
+                    '\u20b9${price.toStringAsFixed(0)}/seat',
+                    style: AppTextStyles.h4.copyWith(color: AppColors.primary),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -209,7 +227,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
 
           return Column(
             children: [
-              // ── Timer banner (no AnimatedSize — avoids ticker error) ──
+              // ── Timer banner ──
               if (isLocked && booking.lockExpiration != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -218,6 +236,40 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                     onExpired: _onLockExpired,
                   ),
                 ),
+
+              // ── AI recommended seats banner ──
+              Consumer<ChatState>(
+                builder: (_, chat, __) {
+                  if (chat.recommendedSeats.isEmpty || isLocked) {
+                    return const SizedBox.shrink();
+                  }
+                  return Container(
+                    margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.35)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.auto_awesome_rounded,
+                            size: 16, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'AI recommended: Seats ${chat.recommendedSeats.join(', ')}',
+                            style: AppTextStyles.caption
+                                .copyWith(color: AppColors.primary),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
 
               // ── Legend ──
               const SeatLegend(),
@@ -307,7 +359,7 @@ class _BottomBar extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      '\$${total.toStringAsFixed(2)}',
+                      '₹${total.toStringAsFixed(2)}',
                       style: AppTextStyles.h3
                           .copyWith(color: AppColors.primary),
                     ),

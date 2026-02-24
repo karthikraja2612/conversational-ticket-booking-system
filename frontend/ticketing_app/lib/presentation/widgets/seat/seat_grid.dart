@@ -19,9 +19,29 @@ class SeatGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (seats.isEmpty) return const SizedBox.shrink();
 
+    // Deduplicate by (rowNumber, seatNumber) — keep the "worst" status so
+    // booked/locked seats are never hidden by a duplicate available record.
+    int _statusPriority(SeatStatus s) {
+      switch (s) {
+        case SeatStatus.booked: return 3;
+        case SeatStatus.locked: return 2;
+        case SeatStatus.available: return 1;
+      }
+    }
+    final Map<String, SeatModel> uniqueMap = {};
+    for (final seat in seats) {
+      final key = '${seat.rowNumber}_${seat.seatNumber}';
+      final existing = uniqueMap[key];
+      if (existing == null ||
+          _statusPriority(seat.status) > _statusPriority(existing.status)) {
+        uniqueMap[key] = seat;
+      }
+    }
+    final deduped = uniqueMap.values.toList();
+
     // Build row map
     final Map<int, List<SeatModel>> rowMap = {};
-    for (final seat in seats) {
+    for (final seat in deduped) {
       rowMap.putIfAbsent(seat.rowNumber, () => []).add(seat);
     }
     final sortedRowKeys = rowMap.keys.toList()..sort();
@@ -35,32 +55,39 @@ class SeatGrid extends StatelessWidget {
             .map((k) => rowMap[k]!.length)
             .reduce((a, b) => a > b ? a : b);
 
+    // seatsPerRow = highest seat_number value across all rows (matches DB definition)
+    int seatsPerRow = 1;
+    for (final key in sortedRowKeys) {
+      for (final s in rowMap[key]!) {
+        if (s.seatNumber > seatsPerRow) seatsPerRow = s.seatNumber;
+      }
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Calculate seat size dynamically to fit within available width
         const double horizontalPadding = 32.0;
         const double rowLabelWidth = 28.0;
         const double seatSpacing = 6.0;
-        const double minSeatSize = 28.0;
+        const double minSeatSize = 20.0;
         const double maxSeatSize = 40.0;
 
-        // Calculate available width for seats
-        final double availableWidthForSeats = constraints.maxWidth - 
-            horizontalPadding - 
+        // Available width for the seats row (inside Expanded, after scroll padding + row label)
+        final double availableWidthForSeats = constraints.maxWidth -
+            horizontalPadding -
             rowLabelWidth;
 
-        // Calculate ideal seat size that fits in viewport
-        final double idealSeatSize = (availableWidthForSeats - 
-            (seatSpacing * (maxSeatsInRow - 1))) / maxSeatsInRow;
+        // Each seat has Padding(horizontal: seatSpacing/2) on BOTH sides,
+        // so total spacing = seatSpacing * maxSeatsInRow (not n-1).
+        final double idealSeatSize =
+            (availableWidthForSeats - (seatSpacing * maxSeatsInRow)) /
+                maxSeatsInRow;
 
-        // Clamp seat size between min and max
         final double seatSize = idealSeatSize.clamp(minSeatSize, maxSeatSize);
 
-        // Calculate total width needed for seats in a row
-        final double seatsRowWidth = (seatSize * maxSeatsInRow) + 
-            (seatSpacing * (maxSeatsInRow - 1));
+        // Use the same seatSpacing * n formula for the overflow check
+        final double seatsRowWidth =
+            (seatSize * maxSeatsInRow) + (seatSpacing * maxSeatsInRow);
 
-        // Determine if horizontal scrolling is needed
         final bool needsHorizontalScroll = seatsRowWidth > availableWidthForSeats;
 
         return SingleChildScrollView(
@@ -70,20 +97,20 @@ class SeatGrid extends StatelessWidget {
             children: [
               _StageIndicator(
                 width: constraints.maxWidth * 0.6),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               ...sortedRowKeys.map((rowNum) {
                 final rowSeats = rowMap[rowNum]!;
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(bottom: 6),
                   child: Row(
                     children: [
-                      // Row label - fixed position
+                      // Row label — numeric (1, 2, 3 ...) matching DB row_number
                       SizedBox(
                         width: rowLabelWidth,
                         child: Text(
-                          String.fromCharCode(64 + rowNum),
+                          'R$rowNum',
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textTertiary,
                           ),
@@ -104,6 +131,7 @@ class SeatGrid extends StatelessWidget {
                                     child: _SeatTile(
                                       seat: seat,
                                       size: seatSize,
+                                      absoluteNumber: seat.absoluteNumber(seatsPerRow),
                                       onTap: () => onSeatTap(seat.id),
                                       isEnabled: isEnabled,
                                     ),
@@ -118,6 +146,7 @@ class SeatGrid extends StatelessWidget {
                                   child: _SeatTile(
                                     seat: seat,
                                     size: seatSize,
+                                    absoluteNumber: seat.absoluteNumber(seatsPerRow),
                                     onTap: () => onSeatTap(seat.id),
                                     isEnabled: isEnabled,
                                   ),
@@ -187,12 +216,14 @@ class _StageIndicator extends StatelessWidget {
 class _SeatTile extends StatelessWidget {
   final SeatModel seat;
   final double size;
+  final int absoluteNumber;
   final VoidCallback onTap;
   final bool isEnabled;
 
   const _SeatTile({
     required this.seat,
     required this.size,
+    required this.absoluteNumber,
     required this.onTap,
     required this.isEnabled,
   });
@@ -205,7 +236,8 @@ class _SeatTile extends StatelessWidget {
     Color bg;
     Color borderColor = Colors.transparent;
     Color? shadowColor;
-    Widget? icon;
+    Widget? child;
+    final double fontSize = (size * 0.30).clamp(8.0, 11.0);
 
     switch (seat.status) {
       case SeatStatus.locked:
@@ -213,12 +245,12 @@ class _SeatTile extends StatelessWidget {
           bg = AppColors.warning.withValues(alpha: 0.45);
           borderColor = AppColors.warning.withValues(alpha: 0.8);
           shadowColor = AppColors.warning;
-          icon = Icon(Icons.lock_rounded,
+          child = Icon(Icons.lock_rounded,
               size: size * 0.38, color: AppColors.warning);
         } else {
           bg = AppColors.warning.withValues(alpha: 0.2);
           borderColor = AppColors.warning.withValues(alpha: 0.4);
-          icon = Icon(Icons.lock_outline,
+          child = Icon(Icons.lock_outline,
               size: size * 0.38,
               color: AppColors.warning.withValues(alpha: 0.6));
         }
@@ -226,17 +258,47 @@ class _SeatTile extends StatelessWidget {
       case SeatStatus.booked:
         bg = AppColors.booked;
         borderColor = Colors.white.withValues(alpha: 0.05);
+        child = Text(
+          '$absoluteNumber',
+          style: TextStyle(
+            fontSize: fontSize,
+            fontWeight: FontWeight.w600,
+            color: Colors.white.withValues(alpha: 0.3),
+          ),
+        );
         break;
       case SeatStatus.available:
         if (seat.isSelected) {
           bg = AppColors.primary;
           borderColor = AppColors.primary.withValues(alpha: 0.5);
           shadowColor = AppColors.primary;
-          icon = Icon(Icons.check_rounded,
-              size: size * 0.42, color: Colors.white);
+          child = Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.check_rounded,
+                  size: size * 0.32, color: Colors.white),
+              Text(
+                '$absoluteNumber',
+                style: TextStyle(
+                  fontSize: fontSize * 0.85,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  height: 1.0,
+                ),
+              ),
+            ],
+          );
         } else {
           bg = AppColors.surfaceLight;
           borderColor = Colors.white.withValues(alpha: 0.08);
+          child = Text(
+            '$absoluteNumber',
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
+            ),
+          );
         }
         break;
     }
@@ -263,7 +325,7 @@ class _SeatTile extends StatelessWidget {
                 ]
               : null,
         ),
-        child: icon != null ? Center(child: icon) : null,
+        child: child != null ? Center(child: child) : null,
       ),
     );
   }

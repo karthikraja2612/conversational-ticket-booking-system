@@ -11,7 +11,7 @@ SECRET_KEY = "super_secret_key_change_this"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["sha256_crypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -31,11 +31,12 @@ def get_current_user(token: str = Depends(oauth2_scheme),
 
     return user
 
-def hash_password(password: str):
-    return pwd_context.hash(password)
+def hash_password(password: str) -> str:
+    # Truncate to 72 bytes to avoid bcrypt ValueError (if bcrypt is used)
+    return pwd_context.hash(password[:72])
 
-def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password[:72], hashed_password)
 
 def create_access_token(data: dict):
     to_encode = data.copy()

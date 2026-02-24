@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../domain/state/auth_state.dart';
+import '../../domain/state/booking_state.dart';
+import '../../domain/state/chat_state.dart';
 import '../animations/fade_slide_transition.dart';
 import '../widgets/common/gradient_button.dart';
 import 'signup_screen.dart';
@@ -39,6 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     if (!mounted) return;
     if (ok) {
+      context.read<BookingState>().setAuthToken(auth.token);
+      context.read<BookingState>().setCurrentUserId(auth.userId);
+      context.read<ChatState>().setAuthToken(auth.token);
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -50,12 +55,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // Enhanced gradient background with multiple blurs
           Positioned(
             top: -size.height * 0.15,
             right: -size.width * 0.2,
@@ -96,8 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-          
-          // Content
+
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -105,7 +108,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Logo and Brand
                     FadeSlideTransition(
                       duration: const Duration(milliseconds: 700),
                       child: Container(
@@ -139,9 +141,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 32),
-                    
-                    // Welcome Text
+
                     FadeSlideTransition(
                       duration: const Duration(milliseconds: 700),
                       delay: const Duration(milliseconds: 100),
@@ -168,76 +170,72 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 48),
-                    
-                    // Form Card
+
                     FadeSlideTransition(
                       duration: const Duration(milliseconds: 700),
                       delay: const Duration(milliseconds: 200),
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: AppColors.surface.withValues(alpha: 0.5),
+                          color: AppColors.surface.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: AppColors.borderSubtle,
+                            width: 1,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
                         ),
-                        child: Consumer<AuthState>(
-                          builder: (context, auth, _) {
-                            return Form(
-                              key: _formKey,
-                              child: Column(
+                        child: Form(
+                          key: _formKey,
+                          child: Consumer<AuthState>(
+                            builder: (context, auth, _) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  _buildTextField(
+                                  TextFormField(
                                     controller: _emailController,
-                                    label: 'Email Address',
-                                    hint: 'your.email@example.com',
-                                    icon: Icons.email_outlined,
                                     keyboardType: TextInputType.emailAddress,
+                                    autocorrect: false,
+                                    style: AppTextStyles.body1,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Email',
+                                      prefixIcon: Icon(Icons.email_outlined),
+                                    ),
                                     validator: (v) {
                                       if (v == null || v.trim().isEmpty) {
                                         return 'Email is required';
                                       }
-                                      if (!RegExp(
-                                              r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
-                                          .hasMatch(v.trim())) {
-                                        return 'Enter a valid email';
-                                      }
                                       return null;
                                     },
                                   ),
-                                  const SizedBox(height: 20),
-                                  _buildTextField(
+                                  const SizedBox(height: 16),
+                                  TextFormField(
                                     controller: _passwordController,
-                                    label: 'Password',
-                                    hint: '••••••••',
-                                    icon: Icons.lock_outline_rounded,
-                                    isPassword: true,
-                                    obscure: _obscurePassword,
-                                    onToggleObscure: () => setState(
-                                        () => _obscurePassword = !_obscurePassword),
+                                    obscureText: _obscurePassword,
+                                    style: AppTextStyles.body1,
+                                    decoration: InputDecoration(
+                                      labelText: 'Password',
+                                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          _obscurePassword
+                                              ? Icons.visibility_outlined
+                                              : Icons.visibility_off_outlined,
+                                        ),
+                                        onPressed: () => setState(
+                                            () => _obscurePassword = !_obscurePassword),
+                                      ),
+                                    ),
                                     validator: (v) {
                                       if (v == null || v.isEmpty) {
                                         return 'Password is required';
                                       }
-                                      if (v.length < 6) {
-                                        return 'Minimum 6 characters required';
-                                      }
                                       return null;
                                     },
                                   ),
-                                  
-                                  if (auth.phase == AuthPhase.error &&
-                                      auth.errorMessage != null)
+
+                                  if (auth.errorMessage != null)
                                     Container(
                                       margin: const EdgeInsets.only(top: 16),
                                       padding: const EdgeInsets.all(12),
@@ -268,7 +266,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                         ],
                                       ),
                                     ),
-                                  
+
                                   const SizedBox(height: 32),
                                   GradientButton(
                                     text: 'Sign In',
@@ -278,16 +276,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                     width: double.infinity,
                                   ),
                                 ],
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
-                    
-                    const SizedBox(height: 32),
-                    
-                    // Sign Up Link
+
+                    const SizedBox(height: 28),
+
                     FadeSlideTransition(
                       duration: const Duration(milliseconds: 700),
                       delay: const Duration(milliseconds: 300),
@@ -301,31 +298,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                           GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const SignupScreen()),
-                            ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary.withValues(alpha: 0.15),
-                                    AppColors.primary.withValues(alpha: 0.08),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'Sign Up',
-                                style: AppTextStyles.body2.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                            onTap: () {
+                              context.read<AuthState>().clearError();
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const SignupScreen()),
+                              );
+                            },
+                            child: Text(
+                              'Sign Up',
+                              style: AppTextStyles.body2.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
@@ -339,97 +324,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    bool isPassword = false,
-    bool obscure = false,
-    VoidCallback? onToggleObscure,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            label,
-            style: AppTextStyles.caption.copyWith(
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
-        ),
-        TextFormField(
-          controller: controller,
-          obscureText: isPassword ? obscure : false,
-          keyboardType: keyboardType,
-          validator: validator,
-          style: AppTextStyles.body1.copyWith(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: AppTextStyles.body2.copyWith(
-              color: AppColors.textTertiary.withValues(alpha: 0.5),
-            ),
-            prefixIcon: Container(
-              margin: const EdgeInsets.only(right: 12),
-              child: Icon(icon, color: AppColors.primary, size: 22),
-            ),
-            suffixIcon: isPassword
-                ? IconButton(
-                    icon: Icon(
-                      obscure
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                      color: AppColors.textTertiary,
-                      size: 22,
-                    ),
-                    onPressed: onToggleObscure,
-                  )
-                : null,
-            filled: true,
-            fillColor: AppColors.surfaceLight.withValues(alpha: 0.5),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: AppColors.borderSubtle.withValues(alpha: 0.5),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: AppColors.borderSubtle.withValues(alpha: 0.5),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.error, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 18,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

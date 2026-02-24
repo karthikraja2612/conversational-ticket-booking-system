@@ -35,6 +35,9 @@ class SeatModel {
     }
   }
 
+  /// Returns the absolute seat number (1-based) given the total seats per row.
+  int absoluteNumber(int seatsPerRow) => (rowNumber - 1) * seatsPerRow + seatNumber;
+
   SeatModel copyWith({
     int? id,
     int? rowNumber,

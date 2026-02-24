@@ -89,13 +89,14 @@ def handle_message(db: Session, session: ChatSession, user_id: int, message: str
             }
             db.commit()
 
+            seat_list = ', '.join(f'#{s}' for s in recommended)
             return {
                 "intent": "select_seats",
                 "event_id": event_id,
                 "quantity": quantity,
                 "category": entities.get("category"),
                 "recommended_seats": recommended,
-                "message": "Skipping steps. Here are recommended seats."
+                "message": f"Great! I recommend seat{'s' if quantity > 1 else ''} {seat_list} for you. Tap \"Select Seats\" to proceed."
             }
 
 
@@ -208,17 +209,24 @@ def handle_message(db: Session, session: ChatSession, user_id: int, message: str
         if text.isdigit():
             quantity = int(text)
 
+            event_id = session.context.get("event_id")
+            recommended = recommend_seats(db, event_id, quantity)
+
             session.context["quantity"] = quantity
+            session.context["recommended_seats"] = recommended
             session.state = "awaiting_seat_selection"
             db.commit()
 
+            seat_list = ', '.join(f'#{s}' for s in recommended)
             return {
                 "intent": "select_seats",
                 "quantity": quantity,
-                "event_id": session.context["event_id"]
+                "event_id": event_id,
+                "recommended_seats": recommended,
+                "message": f"Great! I recommend seat{'s' if quantity > 1 else ''} {seat_list} for you. Tap \"Select Seats\" to proceed."
             }
 
-        return {"intent": "ask_quantity_again"}
+        return {"intent": "ask_quantity_again", "message": "Please enter a valid number. How many tickets?"}
 
     return {"intent": "unknown"}
 

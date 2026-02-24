@@ -3,45 +3,44 @@ class EventModel {
   final String name;
   final String description;
   final String venue;
-  final DateTime dateTime;
+  final DateTime date;
   final double price;
-  final String category;
 
   const EventModel({
     required this.id,
     required this.name,
     required this.description,
     required this.venue,
-    required this.dateTime,
+    required this.date,
     required this.price,
-    required this.category,
   });
 
-  /// Static demo event matching backend event ID 1
-  static final EventModel demo = EventModel(
-    id: 1,
-    name: 'The Grand Showcase',
-    description:
-        'An unforgettable evening of live performances, featuring world-class acts across music and entertainment.',
-    venue: 'Grand Arena, Hall A',
-    dateTime: DateTime(2026, 3, 15, 19, 30),
-    price: 50.0,
-    category: 'Live Event',
-  );
-
   String get formattedDate {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return '${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year}';
+    final d = date;
+    return '${d.day}/${d.month}/${d.year} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
   }
 
-  String get formattedTime {
-    final h = dateTime.hour;
-    final m = dateTime.minute.toString().padLeft(2, '0');
-    final period = h >= 12 ? 'PM' : 'AM';
-    final hour = h > 12 ? h - 12 : (h == 0 ? 12 : h);
-    return '$hour:$m $period';
+  factory EventModel.fromJson(Map<String, dynamic> json) {
+    // Backend returns 'event_date', fallback to 'date'
+    final rawDate = json['event_date'] as String? ?? json['date'] as String?;
+    return EventModel(
+      id: json['id'] as int,
+      name: json['name'] as String,
+      description: json['description'] as String? ?? '',
+      venue: json['venue'] as String? ?? json['location'] as String? ?? '',
+      date: rawDate != null
+          ? DateTime.tryParse(rawDate) ?? DateTime.now()
+          : DateTime.now(),
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+    );
   }
+
+  static EventModel get demo => EventModel(
+        id: 1,
+        name: 'Music Night',
+        description: 'An unforgettable evening of live music and performance.',
+        venue: 'City Arena, Hall A',
+        date: DateTime.now().add(const Duration(hours: 5)),
+        price: 500.0,
+      );
 }

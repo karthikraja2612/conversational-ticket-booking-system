@@ -10,9 +10,6 @@ enum BookingPhase { idle, loading, locked, confirmed, paid, error }
 class BookingState extends ChangeNotifier {
   final BookingRepository _repository;
 
-  BookingState({BookingRepository? repository})
-      : _repository = repository ?? BookingRepository();
-
   List<SeatModel> _seats = [];
   BookingModel? _currentBooking;
   DateTime? _lockExpiration;
@@ -20,8 +17,11 @@ class BookingState extends ChangeNotifier {
   String? _errorMessage;
   Timer? _countdownTimer;
   List<int> _lockedSeatIds = [];
+  int? _currentUserId;
 
-  // ── Getters ──────────────────────────────────────────────────────────────
+  BookingState({BookingRepository? repository})
+      : _repository = repository ?? BookingRepository();
+
   List<SeatModel> get seats => _seats;
   List<SeatModel> get selectedSeats =>
       _seats.where((s) => s.isSelected).toList();
@@ -41,13 +41,22 @@ class BookingState extends ChangeNotifier {
     return remaining.isNegative ? Duration.zero : remaining;
   }
 
-  // ── Seat Fetch ────────────────────────────────────────────────────────────
+  void setAuthToken(String? token) {
+    _repository.setAuthToken(token);
+  }
+
+  void setCurrentUserId(int? userId) {
+    _currentUserId = userId;
+  }
+
   Future<void> fetchSeats() async {
     _phase = BookingPhase.loading;
     _errorMessage = null;
     notifyListeners();
     try {
-      _seats = await _repository.getSeats(AppConstants.defaultEventId);
+      final freshSeats = await _repository.getSeats(AppConstants.defaultEventId);
+      // Reset all selections when fetching fresh seat data
+      _seats = freshSeats.map((s) => s.copyWith(isSelected: false)).toList();
       _phase = BookingPhase.idle;
     } catch (e) {
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
@@ -56,7 +65,6 @@ class BookingState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Toggle Seat ───────────────────────────────────────────────────────────
   void toggleSeat(int seatId) {
     if (_phase == BookingPhase.loading || isLocked) return;
     final idx = _seats.indexWhere((s) => s.id == seatId);
@@ -69,11 +77,24 @@ class BookingState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Lock Seats ────────────────────────────────────────────────────────────
+  /// Pre-selects seats recommended by the chatbot.
+  void applyRecommendedSeats(List<int> recommendedIds) {
+    if (_phase == BookingPhase.loading || isLocked || _seats.isEmpty) return;
+    final updated = _seats.map((seat) {
+      if (recommendedIds.contains(seat.id) && seat.isInteractable) {
+        return seat.copyWith(isSelected: true);
+      }
+      return seat;
+    }).toList();
+    _seats = updated;
+    notifyListeners();
+  }
+
   Future<bool> lockSelection() async {
     final tolock = selectedSeats;
     if (tolock.isEmpty) return false;
     final ids = tolock.map((s) => s.id).toList();
+    final userId = _currentUserId ?? 1;
 
     _phase = BookingPhase.loading;
     _errorMessage = null;
@@ -82,7 +103,7 @@ class BookingState extends ChangeNotifier {
     try {
       _lockExpiration = await _repository.lockSeats(
         AppConstants.defaultEventId,
-        AppConstants.defaultUserId,
+        userId,
         ids,
       );
       _lockedSeatIds = List<int>.from(ids);
@@ -108,10 +129,10 @@ class BookingState extends ChangeNotifier {
     }
   }
 
-  // ── Confirm Booking ───────────────────────────────────────────────────────
   Future<bool> confirmBooking() async {
     final ids = _lockedSeatIds;
     if (ids.isEmpty) return false;
+    final userId = _currentUserId ?? 1;
 
     _phase = BookingPhase.loading;
     _errorMessage = null;
@@ -120,7 +141,7 @@ class BookingState extends ChangeNotifier {
     try {
       _currentBooking = await _repository.createBooking(
         AppConstants.defaultEventId,
-        AppConstants.defaultUserId,
+        userId,
         ids,
       );
       _phase = BookingPhase.confirmed;
@@ -134,7 +155,6 @@ class BookingState extends ChangeNotifier {
     }
   }
 
-  // ── Process Payment ───────────────────────────────────────────────────────
   Future<bool> processPayment() async {
     if (_currentBooking?.id == null) return false;
 
@@ -160,7 +180,6 @@ class BookingState extends ChangeNotifier {
     }
   }
 
-  // ── Timer ─────────────────────────────────────────────────────────────────
   void _startCountdown() {
     _countdownTimer?.cancel();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -191,7 +210,6 @@ class BookingState extends ChangeNotifier {
     Future.microtask(fetchSeats);
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
   void clearError() {
     _errorMessage = null;
     if (_phase == BookingPhase.error) _phase = BookingPhase.idle;

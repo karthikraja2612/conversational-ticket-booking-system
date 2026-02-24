@@ -206,7 +206,21 @@ def get_seat_status(event_id: int, db: Session = Depends(get_db)):
     ).update({"status": "released"})
     db.commit()
 
-    seats = db.query(Seat).all()
+    # 2️⃣ Only fetch seats that belong to this event's venue
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    # Deduplicate by (row_number, seat_number) — pick lowest id per position
+    from sqlalchemy import func as sqlfunc
+    subq = (
+        db.query(sqlfunc.min(Seat.id).label("min_id"))
+        .filter(Seat.venue_id == event.venue_id)
+        .group_by(Seat.row_number, Seat.seat_number)
+        .subquery()
+    )
+    seats = db.query(Seat).filter(Seat.id.in_(subq)).order_by(Seat.row_number, Seat.seat_number).all()
 
     result = []
 

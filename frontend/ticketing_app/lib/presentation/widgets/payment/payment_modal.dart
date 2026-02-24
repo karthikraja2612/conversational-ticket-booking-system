@@ -1,9 +1,10 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../data/models/event_model.dart';
+import '../../../domain/state/event_state.dart';
 import '../common/gradient_button.dart';
 import '../common/glass_card.dart';
 
@@ -59,7 +60,7 @@ class PaymentModal extends StatelessWidget {
                       const Text('Secure Checkout', style: AppTextStyles.h2),
                       const SizedBox(height: 4),
                       Text(
-                        EventModel.demo.name,
+                        context.watch<EventState>().primaryEvent?.name ?? '',
                         style: AppTextStyles.caption
                             .copyWith(color: AppColors.primary),
                         overflow: TextOverflow.ellipsis,
@@ -92,7 +93,7 @@ class PaymentModal extends StatelessWidget {
                 children: [
                   _buildRow(
                     'Price per seat',
-                    '\$${_pricePerSeat.toStringAsFixed(2)}',
+                    '₹${_pricePerSeat.toStringAsFixed(2)}',
                   ),
                   const SizedBox(height: 8),
                   _buildRow(
@@ -104,7 +105,7 @@ class PaymentModal extends StatelessWidget {
                   const SizedBox(height: 12),
                   _buildRow(
                     'Total',
-                    '\$${amount.toStringAsFixed(2)}',
+                    '₹${amount.toStringAsFixed(2)}',
                     isTotal: true,
                   ),
                 ],
@@ -142,6 +143,14 @@ class PaymentModal extends StatelessWidget {
                   version: QrVersions.auto,
                   size: 160,
                   backgroundColor: Colors.white,
+                  eyeStyle: const QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: Colors.black,
+                  ),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ).animate().fadeIn(delay: 300.ms, duration: 400.ms).scale(

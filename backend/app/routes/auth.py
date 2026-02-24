@@ -28,7 +28,10 @@ def register(user: schemas.UserRegister, db: Session = Depends(get_db)):
 
     return {
         "access_token": token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "user_id": new_user.id,
+        "name": new_user.name,
+        "email": new_user.email
     }
 
 
@@ -49,5 +52,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(),
 
     return {
         "access_token": access_token,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "user_id": db_user.id,
+        "name": db_user.name,
+        "email": db_user.email
     }

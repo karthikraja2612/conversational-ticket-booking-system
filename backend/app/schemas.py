@@ -29,6 +29,16 @@ class SeatStatusResponse(BaseModel):
     class Config:
         orm_mode = True
 
+class EventResponse(BaseModel):
+    id: int
+    name: str
+    venue_id: int
+    event_date: str
+    price: float
+
+    class Config:
+        orm_mode = True
+
 class UserRegister(BaseModel):
     name: str
     email: EmailStr

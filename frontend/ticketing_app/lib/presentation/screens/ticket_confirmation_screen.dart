@@ -4,9 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
-import '../../data/models/event_model.dart';
 import '../../domain/state/booking_state.dart';
 import '../../domain/state/chat_state.dart';
+import '../../domain/state/event_state.dart';
 import '../widgets/common/animated_loader.dart';
 import '../widgets/common/glass_card.dart';
 import '../widgets/common/gradient_button.dart';
@@ -41,7 +41,7 @@ class TicketConfirmationScreen extends StatelessWidget {
           }
 
           final qrData =
-              'TICKETBOT|BOOKING:${booking.id}|EVENT:${booking.eventId}|USER:${booking.userId}|SEATS:${booking.seatIds.join(",")}|AMOUNT:${booking.totalAmount}|EVENT:${EventModel.demo.name}';
+              'TICKETBOT|BOOKING:${booking.id}|EVENT:${booking.eventId}|USER:${booking.userId}|SEATS:${booking.seatIds.join(",")}|AMOUNT:${booking.totalAmount}|EVENT:${context.read<EventState>().primaryEvent?.name ?? ''}';
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -83,9 +83,9 @@ class TicketConfirmationScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      _buildRow('Event', EventModel.demo.name),
+                      _buildRow('Event', context.read<EventState>().primaryEvent?.name ?? ''),
                       const SizedBox(height: 10),
-                      _buildRow('Date', EventModel.demo.formattedDate),
+                      _buildRow('Date', context.read<EventState>().primaryEvent?.formattedDate ?? ''),
                       const SizedBox(height: 10),
                       _buildRow('Booking ID', '#${booking.id}'),
                       const SizedBox(height: 10),
@@ -103,7 +103,7 @@ class TicketConfirmationScreen extends StatelessWidget {
                       ),
                       _buildRow(
                         'Total Paid',
-                        '\$${booking.totalAmount.toStringAsFixed(2)}',
+                        '₹${booking.totalAmount.toStringAsFixed(2)}',
                         isTotal: true,
                       ),
                       const SizedBox(height: 10),
@@ -139,6 +139,15 @@ class TicketConfirmationScreen extends StatelessWidget {
                           data: qrData,
                           version: QrVersions.auto,
                           size: 200,
+                          backgroundColor: Colors.white,
+                          eyeStyle: const QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: Colors.black,
+                          ),
+                          dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: Colors.black,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),

@@ -7,6 +7,10 @@ class BookingRepository {
 
   BookingRepository({ApiService? apiService}) : _apiService = apiService ?? ApiService();
 
+  void setAuthToken(String? token) {
+    _apiService.setAuthToken(token);
+  }
+
   Future<List<SeatModel>> getSeats(int eventId) async {
     return await _apiService.fetchSeatsStatus(eventId);
   }

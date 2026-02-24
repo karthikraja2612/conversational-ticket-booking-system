@@ -1,14 +1,32 @@
-from fastapi import FastAPI
-from .database import engine,SessionLocal
-from .models import Base,Seat,Venue
-from .routes import seats,auth,chat,users
+from fastapi import FastAPI, Depends
+from sqlalchemy.orm import Session
+from .database import engine, SessionLocal, get_db
+from .models import Base, Seat, Venue, Event
+from .routes import seats, auth, chat, users
 from fastapi.middleware.cors import CORSMiddleware
+from typing import List
 
 app = FastAPI()
 app.include_router(seats.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(chat.router)
+
+@app.get("/events")
+def get_events(db: Session = Depends(get_db)):
+    events = db.query(Event).all()
+    return [
+        {
+            "id": e.id,
+            "name": e.name,
+            "venue_id": e.venue_id,
+            "event_date": e.event_date.isoformat() if e.event_date else None,
+            "price": e.price,
+            "venue": e.venue.name if e.venue else "",
+            "location": e.venue.location if e.venue else "",
+        }
+        for e in events
+    ]
 Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
