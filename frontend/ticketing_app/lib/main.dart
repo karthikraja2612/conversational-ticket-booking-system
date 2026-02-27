@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'data/repositories/booking_repository.dart';
 import 'data/repositories/chat_repository.dart';
+import 'domain/state/admin_state.dart';
 import 'domain/state/auth_state.dart';
 import 'domain/state/booking_state.dart';
 import 'domain/state/chat_state.dart';
@@ -40,6 +41,7 @@ class MyApp extends StatelessWidget {
 
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AdminState()),
         ChangeNotifierProvider(create: (_) => AuthState()),
         ChangeNotifierProvider(
           create: (_) => BookingState(repository: bookingRepo),

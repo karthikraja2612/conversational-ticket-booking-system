@@ -8,6 +8,14 @@ from typing import List
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(seats.router)
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -16,14 +24,6 @@ app.include_router(admin.router)
 app.include_router(admin_auth.router)
 app.include_router(admin_events.router)
 app.include_router(admin_venues.router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 Base.metadata.create_all(bind=engine)
 
@@ -35,7 +35,7 @@ def root():
 
 @app.get("/events", response_model=List[dict])
 def get_events(db: Session = Depends(get_db)):
-    events = db.query(Event).filter(Event.status == "published").all()
+    events = db.query(Event).filter(Event.status != "cancelled").order_by(Event.event_date).all()
     return [
         {
             "id": e.id,

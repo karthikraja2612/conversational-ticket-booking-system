@@ -18,6 +18,7 @@ class BookingState extends ChangeNotifier {
   Timer? _countdownTimer;
   List<int> _lockedSeatIds = [];
   int? _currentUserId;
+  int _currentEventId = AppConstants.defaultEventId;
 
   BookingState({BookingRepository? repository})
       : _repository = repository ?? BookingRepository();
@@ -49,12 +50,16 @@ class BookingState extends ChangeNotifier {
     _currentUserId = userId;
   }
 
+  void setCurrentEventId(int eventId) {
+    _currentEventId = eventId;
+  }
+
   Future<void> fetchSeats() async {
     _phase = BookingPhase.loading;
     _errorMessage = null;
     notifyListeners();
     try {
-      final freshSeats = await _repository.getSeats(AppConstants.defaultEventId);
+      final freshSeats = await _repository.getSeats(_currentEventId);
       // Reset all selections when fetching fresh seat data
       _seats = freshSeats.map((s) => s.copyWith(isSelected: false)).toList();
       _phase = BookingPhase.idle;
@@ -102,7 +107,7 @@ class BookingState extends ChangeNotifier {
 
     try {
       _lockExpiration = await _repository.lockSeats(
-        AppConstants.defaultEventId,
+        _currentEventId,
         userId,
         ids,
       );
@@ -140,7 +145,7 @@ class BookingState extends ChangeNotifier {
 
     try {
       _currentBooking = await _repository.createBooking(
-        AppConstants.defaultEventId,
+        _currentEventId,
         userId,
         ids,
       );
@@ -164,7 +169,7 @@ class BookingState extends ChangeNotifier {
 
     try {
       await _repository.payForBooking(
-        AppConstants.defaultEventId,
+        _currentEventId,
         _currentBooking!.id!,
       );
       _countdownTimer?.cancel();
@@ -228,6 +233,7 @@ class BookingState extends ChangeNotifier {
     _currentBooking = null;
     _lockExpiration = null;
     _lockedSeatIds = [];
+    _currentEventId = AppConstants.defaultEventId;
     _phase = BookingPhase.idle;
     _errorMessage = null;
     notifyListeners();

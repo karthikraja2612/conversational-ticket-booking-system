@@ -45,7 +45,7 @@ def handle_message(db: Session, session: ChatSession, user_id: int, message: str
         return {
             "intent": "list_events",
             "data": [
-                {"id": e.id, "name": e.name, "price": e.price}
+                {"id": e.id, "name": e.name, "price": e.base_price}
                 for e in events
             ]
         }
@@ -158,7 +158,7 @@ def handle_message(db: Session, session: ChatSession, user_id: int, message: str
             return {
                 "intent": "list_events",
                 "data": [
-                    {"id": e.id, "name": e.name, "price": e.price}
+                    {"id": e.id, "name": e.name, "price": e.base_price}
                     for e in events
                 ]
             }

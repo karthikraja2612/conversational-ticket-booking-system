@@ -33,11 +33,27 @@ class ApiService {
 
   ApiException _handleError(http.Response response) {
     try {
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      return ApiException(
-        data['detail'] as String? ?? 'Request failed (${response.statusCode})',
-        statusCode: response.statusCode,
-      );
+      final data = jsonDecode(response.body);
+      String message;
+      if (data is Map<String, dynamic>) {
+        final detail = data['detail'];
+        if (detail is String) {
+          message = detail;
+        } else if (detail is List && detail.isNotEmpty) {
+          // Pydantic 422 returns detail as list of validation errors
+          final first = detail.first;
+          if (first is Map) {
+            message = first['msg'] as String? ?? 'Validation error (${response.statusCode})';
+          } else {
+            message = 'Validation error (${response.statusCode})';
+          }
+        } else {
+          message = 'Request failed (${response.statusCode})';
+        }
+      } else {
+        message = 'Request failed (${response.statusCode})';
+      }
+      return ApiException(message, statusCode: response.statusCode);
     } catch (_) {
       return ApiException(
         'Request failed (${response.statusCode})',

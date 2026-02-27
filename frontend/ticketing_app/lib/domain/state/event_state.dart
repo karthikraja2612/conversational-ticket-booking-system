@@ -8,6 +8,7 @@ class EventState extends ChangeNotifier {
   final ApiService _apiService;
 
   List<EventModel> _events = [];
+  EventModel? _selectedEvent;
   EventLoadState _loadState = EventLoadState.idle;
   String? _errorMessage;
 
@@ -20,8 +21,14 @@ class EventState extends ChangeNotifier {
   bool get isLoading => _loadState == EventLoadState.loading;
   bool get hasEvents => _events.isNotEmpty;
 
-  /// The first/primary event for display on home screen.
-  EventModel? get primaryEvent => _events.isNotEmpty ? _events.first : null;
+  /// Returns the manually selected event first, then falls back to first in list.
+  EventModel? get primaryEvent => _selectedEvent ?? (_events.isNotEmpty ? _events.first : null);
+
+  /// Set the event selected by the user (e.g. from chatbot event card).
+  void setSelectedEvent(EventModel event) {
+    _selectedEvent = event;
+    notifyListeners();
+  }
 
   Future<void> fetchEvents() async {
     if (_loadState == EventLoadState.loading) return;

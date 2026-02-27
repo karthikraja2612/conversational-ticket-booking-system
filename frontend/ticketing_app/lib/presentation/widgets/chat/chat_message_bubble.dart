@@ -1,8 +1,13 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/extensions.dart';
 import '../../../data/models/chat_message_model.dart';
+import '../../../data/models/event_model.dart';
+import '../../../domain/state/booking_state.dart';
+import '../../../domain/state/event_state.dart';
+import '../../screens/seat_selection_screen.dart';
 
 class ChatMessageBubble extends StatelessWidget {
   final ChatMessageModel message;
@@ -124,7 +129,36 @@ class _EventListMessage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             // Event cards
-            ...events.map((e) => _EventCard(event: e as Map<String, dynamic>)),
+            ...events.map((e) {
+              final eventMap = e as Map<String, dynamic>;
+              final eventId = (eventMap['id'] as num?)?.toInt() ?? 0;
+              final eventName = eventMap['name'] as String? ?? 'Event';
+              final eventPrice = (eventMap['price'] as num?)?.toDouble() ?? 0.0;
+
+              return _EventCard(
+                event: eventMap,
+                onTap: () {
+                  // Build a minimal EventModel for display on seat selection
+                  final selectedEvent = EventModel(
+                    id: eventId,
+                    name: eventName,
+                    description: '',
+                    venue: '',
+                    date: DateTime.now(),
+                    price: eventPrice,
+                  );
+                  context.read<EventState>().setSelectedEvent(selectedEvent);
+                  context.read<BookingState>().setCurrentEventId(eventId);
+                  context.read<BookingState>().clearSelection();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const SeatSelectionScreen(),
+                    ),
+                  );
+                },
+              );
+            }),
             // Timestamp
             Padding(
               padding: const EdgeInsets.only(top: 2, left: 4),
@@ -145,14 +179,17 @@ class _EventListMessage extends StatelessWidget {
 
 class _EventCard extends StatelessWidget {
   final Map<String, dynamic> event;
-  const _EventCard({required this.event});
+  final VoidCallback? onTap;
+  const _EventCard({required this.event, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     final name = event['name'] as String? ?? 'Event';
     final price = (event['price'] as num?)?.toDouble() ?? 0.0;
 
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -194,7 +231,7 @@ class _EventCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Tap "Select Seats" to book',
+                  'Tap to select seats',
                   style: AppTextStyles.caption
                       .copyWith(color: AppColors.textTertiary),
                 ),
@@ -219,7 +256,8 @@ class _EventCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }
 

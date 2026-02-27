@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
-from app.security import verify_password, create_access_token, decode_token
+from app.security import verify_password, hash_password, create_access_token, decode_token
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, EmailStr
 
@@ -12,6 +12,43 @@ admin_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/admin/login")
 class AdminLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+class AdminRegister(BaseModel):
+    email: EmailStr
+    password: str
+
+
+@router.post("/register")
+def admin_register(
+    data: AdminRegister,
+    db: Session = Depends(get_db)
+):
+    existing = db.query(models.Admin).filter(
+        models.Admin.email == data.email
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered as admin")
+
+    admin = models.Admin(
+        email=data.email,
+        hashed_password=hash_password(data.password),
+        is_active=True,
+    )
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+
+    access_token = create_access_token(
+        data={"sub": str(admin.id), "role": "admin"}
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "admin_id": admin.id,
+        "email": admin.email,
+    }
 
 
 @router.post("/login")

@@ -6,6 +6,7 @@ import '../../core/theme/app_text_styles.dart';
 import '../../domain/state/chat_state.dart';
 import '../../domain/state/booking_state.dart';
 import '../../domain/state/event_state.dart';
+import '../../data/models/event_model.dart';
 import '../widgets/chat/chat_message_bubble.dart';
 import '../widgets/chat/typing_indicator.dart';
 import '../widgets/chat/chat_input.dart';
@@ -27,12 +28,55 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<ChatState>().initialize();
+      if (mounted) {
+        context.read<ChatState>().initialize();
+        // Listen for auto-navigation to seat selection (from booking flow)
+        context.read<ChatState>().addListener(_onChatStateChanged);
+      }
     });
+  }
+
+  void _onChatStateChanged() {
+    if (!mounted) return;
+    final chat = context.read<ChatState>();
+    if (chat.shouldNavigateToSeats) {
+      chat.consumeNavigateToSeats();
+      final eventId = chat.pendingEventId;
+      if (eventId != null) {
+        // Set the event in BookingState and EventState
+        final booking = context.read<BookingState>();
+        booking.setCurrentEventId(eventId);
+        booking.clearSelection();
+        // Find the event in EventState's list
+        final eventState = context.read<EventState>();
+        final found = eventState.events.where((e) => e.id == eventId).toList();
+        if (found.isNotEmpty) {
+          eventState.setSelectedEvent(found.first);
+        } else {
+          // Set a placeholder event with the ID
+          eventState.setSelectedEvent(EventModel(
+            id: eventId,
+            name: 'Event #$eventId',
+            description: '',
+            venue: '',
+            date: DateTime.now(),
+            price: 0,
+          ));
+        }
+      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SeatSelectionScreen()),
+      );
+    }
   }
 
   @override
   void dispose() {
+    // Remove listener before disposing
+    try {
+      context.read<ChatState>().removeListener(_onChatStateChanged);
+    } catch (_) {}
     _scrollController.dispose();
     super.dispose();
   }
@@ -48,14 +92,6 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     });
-  }
-
-  void _openSeatSelection(ChatState chat) {
-    chat.onSelectSeatsOpened();
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SeatSelectionScreen()),
-    );
   }
 
   @override
@@ -79,27 +115,17 @@ class _ChatScreenState extends State<ChatScreen> {
                   size: 20, color: AppColors.primary),
             ),
             const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                Row(
-                  children: [
-                    const Text('TicketBot'),
-                    const SizedBox(width: 6),
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        color: AppColors.success,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-                Text(
-                  context.watch<EventState>().primaryEvent?.name ?? '',
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textSecondary),
+                const Text('TicketBot'),
+                const SizedBox(width: 6),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ],
             ),
@@ -134,8 +160,6 @@ class _ChatScreenState extends State<ChatScreen> {
           WidgetsBinding.instance
               .addPostFrameCallback((_) => _scrollToBottom());
 
-          final showSelectSeats = chatState.step == ChatFlowStep.welcome ||
-              chatState.step == ChatFlowStep.selectingSeats;
           final showViewTicket = chatState.step == ChatFlowStep.paymentDone;
 
           return Column(
@@ -175,16 +199,6 @@ class _ChatScreenState extends State<ChatScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (showSelectSeats)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: GradientButton(
-                            text: 'Select Seats',
-                            icon: Icons.event_seat_rounded,
-                            width: double.infinity,
-                            onPressed: () => _openSeatSelection(chatState),
-                          ),
-                        ),
                       if (showViewTicket)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),

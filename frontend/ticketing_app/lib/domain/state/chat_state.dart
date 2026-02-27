@@ -34,6 +34,9 @@ class ChatState extends ChangeNotifier {
   List<int> get recommendedSeats => List.unmodifiable(_recommendedSeats);
   int? get pendingEventId => _pendingEventId;
   int? get pendingQuantity => _pendingQuantity;
+  bool get shouldNavigateToSeats => _shouldNavigateToSeats;
+
+  bool _shouldNavigateToSeats = false;
 
   void setAuthToken(String? token) {
     _authToken = token;
@@ -47,7 +50,7 @@ class ChatState extends ChangeNotifier {
       delay: 400,
     );
     _queueBot(
-      "I will guide you through booking seats for tonight's event. Tap Select Seats when you are ready.",
+      "Type 'show events' to see available events, or tell me what you'd like to book!",
       delay: 2000,
     );
   }
@@ -86,7 +89,6 @@ class ChatState extends ChangeNotifier {
 
     switch (intent) {
 
-      // ── FIX 1: Handle select_seats intent with recommended seats ──────────
       case 'select_seats':
         _pendingEventId = response['event_id'] as int?;
         _pendingQuantity = response['quantity'] as int?;
@@ -99,15 +101,16 @@ class ChatState extends ChangeNotifier {
           _addBotNow(
             message ??
                 'Here are your recommended seats: $seatList. '
-                    'Tap "Select Seats" to proceed.',
+                    'Opening seat selection...',
           );
         } else {
           _addBotNow(
-            message ?? 'Please select your seats from the grid.',
+            message ?? 'Opening seat selection for you...',
           );
         }
-        // Transition to selectingSeats so the "Select Seats" button appears
+        // Transition to selectingSeats and trigger navigation
         _step = ChatFlowStep.selectingSeats;
+        _shouldNavigateToSeats = true;
         break;
 
       // ── FIX 2: ask_quantity — just show the message (state machine in
@@ -213,6 +216,11 @@ class ChatState extends ChangeNotifier {
     });
   }
 
+  void consumeNavigateToSeats() {
+    _shouldNavigateToSeats = false;
+    // No notifyListeners needed - just resets the consumed flag
+  }
+
   void onSelectSeatsOpened() {
     if (_step != ChatFlowStep.welcome && _step != ChatFlowStep.selectingSeats) {
       return;
@@ -268,6 +276,7 @@ class ChatState extends ChangeNotifier {
     _recommendedSeats = [];
     _pendingEventId = null;
     _pendingQuantity = null;
+    _shouldNavigateToSeats = false;
     notifyListeners();
   }
 

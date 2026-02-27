@@ -29,7 +29,7 @@ class BookingModel {
   // Helper factory for the specific confirmed booking response structure
   factory BookingModel.fromConfirmation(Map<String, dynamic> json, int userId, int eventId, List<int> seatIds) {
     return BookingModel(
-      id: json['booking_id'] as int?,
+      id: (json['booking_id'] as num?)?.toInt(),
       userId: userId,
       eventId: eventId,
       seatIds: seatIds,

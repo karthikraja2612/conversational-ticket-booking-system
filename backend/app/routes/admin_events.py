@@ -9,7 +9,27 @@ from app.schemas import EventCreate, EventUpdate
 
 router = APIRouter(prefix="/admin/events", tags=["Admin Events"])
 
-@router.post("/")
+@router.get("")
+def list_events(
+    db: Session = Depends(get_db),
+    admin=Depends(get_current_admin)
+):
+    events = db.query(models.Event).order_by(models.Event.event_date).all()
+    return [
+        {
+            "id": e.id,
+            "name": e.name,
+            "venue_id": e.venue_id,
+            "event_date": e.event_date.isoformat() if e.event_date else None,
+            "base_price": e.base_price,
+            "status": e.status or "draft",
+            "image_url": e.image_url,
+            "created_at": e.created_at.isoformat() if e.created_at else None,
+        }
+        for e in events
+    ]
+
+@router.post("")
 def create_event(
     data: EventCreate,
     db: Session = Depends(get_db),
@@ -29,7 +49,16 @@ def create_event(
     db.commit()
     db.refresh(event)
 
-    return event
+    return {
+        "id": event.id,
+        "name": event.name,
+        "venue_id": event.venue_id,
+        "event_date": event.event_date.isoformat() if event.event_date else None,
+        "base_price": event.base_price,
+        "status": event.status or "draft",
+        "image_url": event.image_url,
+        "created_at": event.created_at.isoformat() if event.created_at else None,
+    }
 
 @router.put("/{event_id}")
 def edit_event(
@@ -52,7 +81,16 @@ def edit_event(
     db.commit()
     db.refresh(event)
 
-    return event
+    return {
+        "id": event.id,
+        "name": event.name,
+        "venue_id": event.venue_id,
+        "event_date": event.event_date.isoformat() if event.event_date else None,
+        "base_price": event.base_price,
+        "status": event.status or "draft",
+        "image_url": event.image_url,
+        "created_at": event.created_at.isoformat() if event.created_at else None,
+    }
 
 @router.patch("/{event_id}/publish")
 def publish_event(

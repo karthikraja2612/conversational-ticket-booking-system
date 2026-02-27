@@ -10,6 +10,7 @@ import '../animations/fade_slide_transition.dart';
 import '../widgets/common/gradient_button.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
+import 'admin_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -315,6 +316,49 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // ── Admin login shortcut ────────────────────────────
+                    FadeSlideTransition(
+                      duration: const Duration(milliseconds: 700),
+                      delay: const Duration(milliseconds: 450),
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const AdminLoginScreen()),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.warning.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.shield_rounded,
+                                  color: AppColors.warning, size: 15),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Admin Login',
+                                style: AppTextStyles.body2.copyWith(
+                                  color: AppColors.warning,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],

@@ -7,7 +7,7 @@ from app.routes.admin_auth import get_current_admin
 
 router = APIRouter(prefix="/admin/venues", tags=["Admin Venues"])
 
-@router.post("/")
+@router.post("")
 def create_venue(
     data: VenueCreate,
     db: Session = Depends(get_db),
@@ -37,7 +37,13 @@ def create_venue(
 
     db.commit()
 
-    return venue
+    return {
+        "id": venue.id,
+        "name": venue.name,
+        "location": venue.location,
+        "total_rows": venue.total_rows,
+        "seats_per_row": venue.seats_per_row,
+    }
 
 @router.put("/{venue_id}")
 def update_venue(
@@ -60,11 +66,27 @@ def update_venue(
     db.commit()
     db.refresh(venue)
 
-    return venue
+    return {
+        "id": venue.id,
+        "name": venue.name,
+        "location": venue.location,
+        "total_rows": venue.total_rows,
+        "seats_per_row": venue.seats_per_row,
+    }
 
-@router.get("/")
+@router.get("")
 def list_venues(
     db: Session = Depends(get_db),
     admin=Depends(get_current_admin)
 ):
-    return db.query(models.Venue).all()
+    venues = db.query(models.Venue).all()
+    return [
+        {
+            "id": v.id,
+            "name": v.name,
+            "location": v.location,
+            "total_rows": v.total_rows,
+            "seats_per_row": v.seats_per_row,
+        }
+        for v in venues
+    ]

@@ -36,7 +36,7 @@ class EventResponse(BaseModel):
     name: str
     venue_id: int
     event_date: str
-    price: float
+    base_price: float
 
     class Config:
         orm_mode = True

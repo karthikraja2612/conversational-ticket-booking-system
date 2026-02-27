@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from datetime import datetime,timedelta
+import uuid
 from ..database import SessionLocal
 from ..models import Seat, SeatLock, BookingSeat, Booking,Event, Payment
 from ..schemas import LockSeatsRequest, ConfirmBookingRequest, SeatResponse, SeatStatusResponse
@@ -112,8 +113,10 @@ def confirm_booking(event_id: int, request: ConfirmBookingRequest, db: Session =
 
         # 2️⃣ Get event price
         event = db.query(Event).filter(Event.id == event_id).first()
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
 
-        total_amount = event.price * len(request.seat_ids)
+        total_amount = event.base_price * len(request.seat_ids)
 
         # 3️⃣ Create booking
         new_booking = Booking(
@@ -150,8 +153,7 @@ def confirm_booking(event_id: int, request: ConfirmBookingRequest, db: Session =
         raise e
     
 @router.post("/events/{event_id}/process-payment")
-def process_payment(event_id: int, booking_id: int, db: Session = Depends(get_db),current_user=Depends(get_current_user)):
-    Booking.user_id == current_user.id
+def process_payment(event_id: int, booking_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     try:
         # 1️⃣ Get booking
         booking = db.query(Booking).filter(
@@ -168,7 +170,7 @@ def process_payment(event_id: int, booking_id: int, db: Session = Depends(get_db
         payment = Payment(
             booking_id=booking_id,
             payment_status="success",
-            transaction_id="TXN123456",
+            transaction_id=f"TXN-{uuid.uuid4().hex[:12].upper()}",
             paid_at=datetime.utcnow()
         )
         db.add(payment)

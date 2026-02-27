@@ -190,8 +190,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           ),
         ],
       ),
-      body: Consumer<BookingState>(
-        builder: (context, booking, _) {
+      body: Consumer2<BookingState, EventState>(
+        builder: (context, booking, eventState, _) {
           // ── Initial loading ──
           if (booking.isLoading && !booking.hasSeats) {
             return AnimatedLoader(message: 'Loading seats...')
@@ -218,12 +218,13 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           final bool isLocked = booking.isLocked;
           final int selectedCount =
               isLocked ? booking.lockedCount : booking.selectedSeats.length;
+          final double eventPrice =
+              eventState.primaryEvent?.price ?? AppConstants.seatPrice;
           final double total = isLocked
               ? (booking.currentBooking?.totalAmount ??
-                      (booking.lockedCount * AppConstants.seatPrice))
+                      (booking.lockedCount * eventPrice))
                   .toDouble()
-              : (booking.selectedSeats.length * AppConstants.seatPrice)
-                  .toDouble();
+              : (booking.selectedSeats.length * eventPrice).toDouble();
 
           return Column(
             children: [
