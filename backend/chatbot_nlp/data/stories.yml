@@ -1,0 +1,92 @@
+version: "3.1"
+
+stories:
+
+- story: general greeting
+  steps:
+  - intent: greet
+  - action: utter_greet
+
+- story: greet then browse events
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - intent: search_event
+  - action: utter_searching_events
+
+- story: greet then book directly
+  steps:
+  - intent: greet
+  - action: utter_greet
+  - intent: book_tickets
+  - action: utter_confirm_booking
+  - intent: affirm
+  - action: utter_booking_successful
+
+- story: search events only
+  steps:
+  - intent: search_event
+  - action: utter_searching_events
+
+- story: ask for pricing
+  steps:
+  - intent: ask_pricing
+  - action: utter_ask_pricing
+
+- story: ask pricing then book
+  steps:
+  - intent: ask_pricing
+  - action: utter_ask_pricing
+  - intent: book_tickets
+  - action: utter_confirm_booking
+  - intent: affirm
+  - action: utter_booking_successful
+
+- story: book tickets flow - confirm
+  steps:
+  - intent: book_tickets
+  - action: utter_confirm_booking
+  - intent: affirm
+  - action: utter_booking_successful
+
+- story: book tickets flow - cancel
+  steps:
+  - intent: book_tickets
+  - action: utter_confirm_booking
+  - intent: deny
+  - action: utter_booking_cancelled
+
+- story: ask help
+  steps:
+  - intent: ask_help
+  - action: utter_help
+
+- story: ask help then browse
+  steps:
+  - intent: ask_help
+  - action: utter_help
+  - intent: search_event
+  - action: utter_searching_events
+
+- story: user says thanks
+  steps:
+  - intent: thanks
+  - action: utter_thanks
+
+- story: booking then thanks goodbye
+  steps:
+  - intent: book_tickets
+  - action: utter_confirm_booking
+  - intent: affirm
+  - action: utter_booking_successful
+  - intent: thanks
+  - action: utter_thanks
+  - intent: goodbye
+  - action: utter_goodbye
+
+- story: cancel then re-search
+  steps:
+  - intent: deny
+  - action: utter_booking_cancelled
+  - intent: search_event
+  - action: utter_searching_events

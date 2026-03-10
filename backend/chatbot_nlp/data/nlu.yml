@@ -1,0 +1,229 @@
+version: "3.1"
+
+nlu:
+- intent: greet
+  examples: |
+    - hey
+    - hello
+    - hi
+    - hello there
+    - good morning
+    - good evening
+    - hey there
+    - hey dude
+    - good afternoon
+    - what's up
+    - howdy
+    - hiya
+    - yo
+    - sup
+    - hi there
+    - greetings
+    - hey bot
+    - hello bot
+    - hi bot
+    - start
+
+- intent: goodbye
+  examples: |
+    - good by
+    - see you later
+    - good night
+    - bye
+    - goodbye
+    - have a nice day
+    - see you around
+    - bye bye
+    - later
+    - take care
+    - I'm done
+    - that's all
+    - thanks bye
+    - ok bye
+    - see ya
+    - exit
+    - quit
+
+- intent: search_event
+  examples: |
+    - what events are happening?
+    - show me some events
+    - show me events
+    - show events
+    - show all events
+    - list events
+    - what events do you have?
+    - any shows available?
+    - any movies today?
+    - find me a [jazz](genre) concert
+    - is there a [comedy](genre) show?
+    - find me a [rock](genre) concert [tonight](time)
+    - are there any [sports](genre) events [tomorrow](time)?
+    - check for [pop](genre) music events [this weekend](time)
+    - what's playing [today](time)?
+    - can you find [movies](genre) for [next week](time)?
+    - find me events
+    - tell me about upcoming events
+    - what can I book?
+    - what shows are on?
+    - browse events
+    - what's available?
+    - see all events
+    - I want to see what events are available
+    - any [classical](genre) concerts?
+    - show me [drama](genre) events
+
+- intent: ask_pricing
+  examples: |
+    - how much are tickets for this?
+    - what's the price?
+    - how much does a seat cost?
+    - tell me the ticket prices
+    - what is the pricing?
+    - how expensive is it?
+    - cost of tickets
+    - are the tickets cheap?
+    - what does it cost?
+    - price?
+    - how much do tickets cost?
+    - what are the seat prices?
+    - is it expensive?
+    - ticket cost?
+    - how much for a ticket?
+    - how much is a VIP seat?
+    - what's the price for standard seats?
+    - tell me about pricing
+
+- intent: book_tickets
+  examples: |
+    - i want to book tickets
+    - buy tickets
+    - book [2](quantity) tickets
+    - i need [3](quantity) seats for [jazz](genre)
+    - I want to buy [4](quantity) tickets for [tomorrow](time)
+    - can I book [1](quantity) seat for the [comedy](genre) show [tonight](time)?
+    - process booking for [5](quantity) tickets
+    - reserve [2](quantity) seats
+    - let's buy [3](quantity) tickets
+    - book it
+    - I'd like to book
+    - get tickets
+    - purchase tickets
+    - I want [2](quantity) tickets
+    - get me [3](quantity) seats
+    - book [1](quantity) ticket please
+    - I need tickets
+    - reserve tickets
+    - i want to buy [2](quantity) tickets for [jazz](genre)
+    - book [4](quantity) seats for the [rock](genre) show
+    - can I get [2](quantity) tickets
+    - ticket please
+    - I want to go
+
+- intent: affirm
+  examples: |
+    - yes
+    - y
+    - indeed
+    - of course
+    - that sounds good
+    - correct
+    - definitely
+    - yeah
+    - yup
+    - absolutely
+    - do it
+    - sure
+    - ok
+    - okay
+    - sounds good
+    - go ahead
+    - confirm
+    - sure thing
+    - that works
+
+- intent: deny
+  examples: |
+    - no
+    - n
+    - never
+    - I don't think so
+    - don't like that
+    - no way
+    - not really
+    - nope
+    - cancel that
+    - cancel
+    - stop
+    - abort
+    - nevermind
+    - never mind
+    - forget it
+    - I changed my mind
+    - not now
+    - skip it
+
+- intent: bot_challenge
+  examples: |
+    - are you a bot?
+    - are you a human?
+    - am I talking to a bot?
+    - am I talking to a human?
+    - are you real?
+    - who are you?
+    - what are you?
+    - are you AI?
+    - are you artificial intelligence?
+    - is this a real person?
+
+- intent: ask_help
+  examples: |
+    - help
+    - what can you do?
+    - how do I use this?
+    - what can I ask you?
+    - help me
+    - I need help
+    - what are your features?
+    - guide me
+    - how does this work?
+    - what commands can I use?
+    - show me what you can do
+    - I don't know what to do
+    - options
+    - menu
+    - what can I do here?
+
+- intent: ask_booking_history
+  examples: |
+    - show my bookings
+    - my booking history
+    - what have I booked?
+    - past bookings
+    - booking history
+    - show my past tickets
+    - my tickets
+    - what tickets do I have?
+    - previous bookings
+    - check my bookings
+    - view my bookings
+    - list my bookings
+    - did I book anything?
+    - my reservations
+
+- intent: thanks
+  examples: |
+    - thanks
+    - thank you
+    - thank you so much
+    - thanks a lot
+    - cheers
+    - appreciate it
+    - much appreciated
+    - great thanks
+    - awesome thanks
+    - that was helpful
+    - perfect
+    - wonderful
+    - nice
+    - cool

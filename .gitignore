@@ -1,0 +1,81 @@
+# ── Python virtual environments ───────────────────────────────────────────────
+venv/
+venv_rasa/
+.venv/
+env/
+ENV/
+backend/venv/
+backend/venv_rasa/
+
+# ── Python cache & compiled files ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+*.egg
+.eggs/
+pip-wheel-metadata/
+
+# ── Python test artefacts ──────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+test_ticketing.db
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+backend/.env
+# Note: frontend/ticketing_app/assets/.env is intentionally tracked
+#       (contains only API_BASE_URL, no secrets)
+
+# ── Alembic ───────────────────────────────────────────────────────────────────
+alembic/__pycache__/
+
+# ── Rasa trained models (large binary files) ──────────────────────────────────
+backend/chatbot_nlp/models/
+backend/chatbot_nlp/.rasa/
+
+# ── Flutter / Dart ────────────────────────────────────────────────────────────
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/.pub-cache/
+**/.pub/
+**/pubspec.lock
+# Keep pubspec.lock for reproducible builds — comment out line above if desired
+
+# ── Android ───────────────────────────────────────────────────────────────────
+*.jks
+*.keystore
+local.properties
+frontend/ticketing_app/android/.gradle/
+frontend/ticketing_app/android/app/debug/
+frontend/ticketing_app/android/app/profile/
+frontend/ticketing_app/android/app/release/
+
+# ── IDE / editors ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+*.swp
+*.swo
+*~
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*

@@ -1,0 +1,68 @@
+version: "3.1"
+
+intents:
+  - greet
+  - goodbye
+  - search_event
+  - ask_pricing
+  - book_tickets
+  - affirm
+  - deny
+  - bot_challenge
+  - ask_help
+  - ask_booking_history
+  - thanks
+
+entities:
+  - genre
+  - time
+  - quantity
+
+responses:
+  utter_greet:
+  - text: "Hey! How can I help you find and book tickets today? 🎟️"
+  - text: "Hi there! Ready to book some tickets? Just tell me what you're looking for!"
+  - text: "Hello! I'm TicketBot. Want to browse events or jump straight to booking?"
+
+  utter_goodbye:
+  - text: "Bye! See you at the event! 🎉"
+  - text: "Take care! Hope to see you at a great show soon!"
+  - text: "Goodbye! Don't forget to check out our upcoming events!"
+
+  utter_iamabot:
+  - text: "I'm TicketBot — your AI-powered ticketing assistant! I can help you browse events, check prices, and book seats."
+
+  utter_searching_events:
+  - text: "Let me check the available events for you..."
+  - text: "Sure! Let me pull up the available shows for you!"
+
+  utter_ask_pricing:
+  - text: "Our ticket prices depend on the event and seat type. Standard seats start from ₹50, while VIP seats go up to ₹150. Want to check prices for a specific event?"
+
+  utter_confirm_booking:
+  - text: "Great! Do you want to proceed to lock these seats?"
+  - text: "Sounds good! Shall I go ahead and lock those seats for you?"
+
+  utter_booking_successful:
+  - text: "Awesome, locking those seats now! Proceed with payment 🎉"
+  - text: "Done! Your seats are locked. Complete your payment to confirm the booking!"
+
+  utter_booking_cancelled:
+  - text: "No worries! Booking cancelled. Let me know if you want to find something else!"
+  - text: "Alright, cancelled that. Ready to help with anything else!"
+
+  utter_help:
+  - text: "Here's what I can do for you:\n• 🎭 *Browse events* — say \"show events\"\n• 💰 *Check prices* — say \"how much are tickets?\"\n• 🎟️ *Book tickets* — say \"book 2 tickets for Jazz\"\n• 📋 *View your bookings* — say \"my bookings\"\n\nWhat would you like to do?"
+
+  utter_booking_history:
+  - text: "You can view all your bookings in the **My Bookings** section of the app. Tap the 📋 profile icon → 'My Bookings' to see your confirmed tickets and QR codes."
+  - text: "Head to **My Bookings** in the app to see all your tickets! You'll find your booking status, event details, and QR codes there."
+
+  utter_thanks:
+  - text: "You're welcome! Is there anything else I can help you with? 😊"
+  - text: "Happy to help! Let me know if you need anything else."
+  - text: "Anytime! Enjoy the show! 🎶"
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true
