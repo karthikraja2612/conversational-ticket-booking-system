@@ -9,6 +9,7 @@ class BookingStatus(str, enum.Enum):
     pending = "pending"
     confirmed = "confirmed"
     cancelled = "cancelled"
+    payment_failed = "payment_failed"
 
 
 class SeatLockStatus(str, enum.Enum):
@@ -28,6 +29,12 @@ class PaymentStatus(str, enum.Enum):
     success = "success"
     failed = "failed"
     refunded = "refunded"
+    pending = "pending"
+
+
+class RefundStatus(str, enum.Enum):
+    initiated = "initiated"
+    completed = "completed"
 
 class ChatSession(Base):
     __tablename__ = "chat_sessions"
@@ -37,6 +44,16 @@ class ChatSession(Base):
     state = Column(String(50), default="idle")
     context = Column(JSON, default=dict)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    sender = Column(String(10), nullable=False)  # user | bot
+    content = Column(String(1000), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 # ...existing code...
@@ -71,10 +88,57 @@ class Event(Base):
     venue_id = Column(Integer, ForeignKey("venues.id"))
     event_date = Column(DateTime)
     base_price = Column(Float)
+    event_type = Column(String(30), nullable=False, default="others")
+    theatre_name = Column(String(200), nullable=True)
+    theatre_location = Column(String(200), nullable=True)
     status = Column(SQLAlchemyEnum(EventStatus), default=EventStatus.draft)
     image_url = Column(String(300), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    venue = relationship("Venue")
+
+
+class Movie(Base):
+    __tablename__ = "movies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
+    genre = Column(String(80), nullable=True)
+    duration_min = Column(Integer, nullable=True)
+    language = Column(String(40), nullable=True)
+
+
+class MovieShowtime(Base):
+    __tablename__ = "movie_showtimes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    movie_id = Column(Integer, ForeignKey("movies.id"), nullable=False, index=True)
+    theatre_name = Column(String(200), nullable=False)
+    screen_number = Column(Integer, nullable=True)
+    show_times = Column(JSON, nullable=False)
+
+    movie = relationship("Movie")
+
+
+class MovieShowConfig(Base):
+    __tablename__ = "movie_show_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    movie_id = Column(Integer, ForeignKey("movies.id"), nullable=True)
+    movie_title = Column(String(200), nullable=False)
+    venue_id = Column(Integer, ForeignKey("venues.id"), nullable=False)
+    theatre_name = Column(String(200), nullable=False)
+    theatre_location = Column(String(200), nullable=True)
+    show_times = Column(JSON, nullable=False)
+    start_date = Column(DateTime, nullable=False)
+    end_date = Column(DateTime, nullable=False)
+    base_price = Column(Float, nullable=False, default=0.0)
+    pricing_overrides = Column(JSON, nullable=True)
+    status = Column(SQLAlchemyEnum(EventStatus), default=EventStatus.draft)
+    image_url = Column(String(300), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    movie = relationship("Movie")
     venue = relationship("Venue")
 
 
@@ -141,6 +205,8 @@ class Booking(Base):
     status = Column(SQLAlchemyEnum(BookingStatus), nullable=False, default=BookingStatus.pending)
     created_at = Column(DateTime, default=datetime.utcnow)
     confirmed_at = Column(DateTime, nullable=True)
+    cancellation_time = Column(DateTime, nullable=True)
+    refund_status = Column(SQLAlchemyEnum(RefundStatus), nullable=True)
 
 
 class BookingSeat(Base):

@@ -10,6 +10,7 @@ import '../../domain/state/event_state.dart';
 import 'chat_screen.dart';
 import 'event_detail_screen.dart';
 import 'login_screen.dart';
+import 'my_bookings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,9 +19,23 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+class _CategoryFilter {
+  final String label;
+  final String value;
+  const _CategoryFilter({required this.label, required this.value});
+}
+
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedCategory = 0;
-  final List<String> _categories = ['All', 'Music', 'Sports', 'Theater', 'Comedy'];
+  final List<_CategoryFilter> _categories = const [
+    _CategoryFilter(label: 'All', value: 'all'),
+    _CategoryFilter(label: 'Movies', value: 'movie'),
+    _CategoryFilter(label: 'Concerts', value: 'concert'),
+    _CategoryFilter(label: 'Festivals', value: 'festival'),
+    _CategoryFilter(label: 'Sports', value: 'sports'),
+    _CategoryFilter(label: 'Comedy', value: 'comedy'),
+    _CategoryFilter(label: 'Others', value: 'others'),
+  ];
 
   @override
   void initState() {
@@ -97,7 +112,9 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               children: [
                 // ── Top Navigation Bar ──
-                _TopBar(onLogout: () async {
+                _TopBar(
+                  locationLabel: 'Coimbatore',
+                  onLogout: () async {
                   context.read<BookingState>().reset();
                   context.read<ChatState>().reset();
                   final auth = context.read<AuthState>();
@@ -109,7 +126,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       (route) => false,
                     );
                   }
-                }),
+                  },
+                ),
 
                 // ── Scrollable body ──
                 Expanded(
@@ -129,6 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(height: 20),
                         _UpcomingEventsSection(
+                          selectedCategory: _categories[_selectedCategory].value,
                           onBookEvent: (e) => _goToChatWithEvent(context, e),
                         ),
                         const SizedBox(height: 32),
@@ -160,7 +179,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _TopBar extends StatelessWidget {
   final VoidCallback onLogout;
-  const _TopBar({required this.onLogout});
+  final String locationLabel;
+  const _TopBar({required this.onLogout, required this.locationLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -238,6 +258,31 @@ class _TopBar extends StatelessWidget {
                     ],
                   ),
                 ],
+              ),
+              const SizedBox(width: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.location_on_rounded,
+                        size: 14, color: Color(0xFF4F8CFF)),
+                    const SizedBox(width: 6),
+                    Text(
+                      locationLabel,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const Spacer(),
               Consumer<AuthState>(
@@ -401,6 +446,44 @@ class _AvatarButton extends StatelessWidget {
                 const SizedBox(height: 28),
                 Container(height: 1, color: Colors.white.withValues(alpha: 0.06)),
                 const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MyBookingsScreen()),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4F8CFF).withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF4F8CFF).withValues(alpha: 0.18),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.receipt_long_rounded,
+                            color: Color(0xFF4F8CFF), size: 20),
+                        SizedBox(width: 12),
+                        Text(
+                          'My Bookings',
+                          style: TextStyle(
+                            color: Color(0xFF4F8CFF),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                          ),
+                        ),
+                        Spacer(),
+                        Icon(Icons.chevron_right_rounded,
+                            color: Color(0xFF4F8CFF), size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
@@ -664,7 +747,7 @@ class _StatPill extends StatelessWidget {
 // ── Category Chips ────────────────────────────────────────────────────────────
 
 class _CategoryChips extends StatelessWidget {
-  final List<String> categories;
+  final List<_CategoryFilter> categories;
   final int selected;
   final void Function(int) onSelect;
   const _CategoryChips({
@@ -738,7 +821,7 @@ class _CategoryChips extends StatelessWidget {
                           : null,
                     ),
                     child: Text(
-                      categories[i],
+                      categories[i].label,
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: isSelected
@@ -764,7 +847,16 @@ class _CategoryChips extends StatelessWidget {
 
 class _UpcomingEventsSection extends StatelessWidget {
   final void Function(EventModel) onBookEvent;
-  const _UpcomingEventsSection({required this.onBookEvent});
+  final String selectedCategory;
+  const _UpcomingEventsSection({
+    required this.onBookEvent,
+    required this.selectedCategory,
+  });
+
+  List<EventModel> _applyFilter(List<EventModel> events) {
+    if (selectedCategory == 'all') return events;
+    return events.where((e) => e.eventType == selectedCategory).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -779,14 +871,21 @@ class _UpcomingEventsSection extends StatelessWidget {
         if (!eventState.hasEvents) {
           return _EventsEmptyState();
         }
+        final filtered = _applyFilter(eventState.events);
+        if (filtered.isEmpty) {
+          return _EventsEmptyState(
+            title: 'No events in this category',
+            message: 'Try another category or check back later.',
+          );
+        }
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
-            children: List.generate(eventState.events.length, (i) {
-              final event = eventState.events[i];
+            children: List.generate(filtered.length, (i) {
+              final event = filtered[i];
               return Padding(
                 padding: EdgeInsets.only(
-                    bottom: i < eventState.events.length - 1 ? 16 : 0),
+                    bottom: i < filtered.length - 1 ? 16 : 0),
                 child: _EventCard(
                   event: event,
                   colorIndex: i,
@@ -831,20 +930,32 @@ class _EventCard extends StatelessWidget {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
 
-  static const _typeLabels = ['Music', 'Sports', 'Theater', 'Comedy', 'Festival', 'Dance'];
-  static const _typeIcons = [
-    Icons.music_note_rounded, Icons.sports_soccer_rounded,
-    Icons.theater_comedy_rounded, Icons.sentiment_very_satisfied_rounded,
-    Icons.celebration_rounded, Icons.airline_seat_recline_extra_rounded,
-  ];
+  static const _typeLabels = {
+    'movie': 'Movie',
+    'concert': 'Concert',
+    'festival': 'Festival',
+    'sports': 'Sports',
+    'comedy': 'Comedy',
+    'others': 'Others',
+  };
+
+  static const _typeIcons = {
+    'movie': Icons.movie_rounded,
+    'concert': Icons.music_note_rounded,
+    'festival': Icons.celebration_rounded,
+    'sports': Icons.sports_soccer_rounded,
+    'comedy': Icons.sentiment_very_satisfied_rounded,
+    'others': Icons.event_rounded,
+  };
 
   @override
   Widget build(BuildContext context) {
     final p = _palettes[colorIndex % _palettes.length];
     final d = event.date;
     final month = _monthNames[d.month - 1];
-    final icon = _typeIcons[colorIndex % _typeIcons.length];
-    final label = _typeLabels[colorIndex % _typeLabels.length];
+    final typeKey = event.eventType;
+    final icon = _typeIcons[typeKey] ?? Icons.event_rounded;
+    final label = _typeLabels[typeKey] ?? 'Event';
 
     return GestureDetector(
       onTap: onTap,
@@ -1064,6 +1175,13 @@ class _EventsLoadingPlaceholder extends StatelessWidget {
 }
 
 class _EventsEmptyState extends StatelessWidget {
+  final String title;
+  final String message;
+  const _EventsEmptyState({
+    this.title = 'No events yet',
+    this.message = 'Events will appear here once published.',
+  });
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -1088,9 +1206,9 @@ class _EventsEmptyState extends StatelessWidget {
                   size: 36, color: Color(0xFF4F8CFF)),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No events yet',
-              style: TextStyle(
+            Text(
+              title,
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -1098,7 +1216,7 @@ class _EventsEmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Events will appear here once published.',
+              message,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,

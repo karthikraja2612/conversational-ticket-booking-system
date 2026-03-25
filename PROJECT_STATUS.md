@@ -13,9 +13,9 @@ A production-grade conversational ticket booking system with real-time seat lock
   - `GET /events/{id}/seats-status` - Get seat availability with lock status
   - `POST /events/{id}/lock-seats` - Lock selected seats for 5 minutes
   - `POST /events/{id}/confirm-booking` - Confirm booking after lock
-  - `POST /bookings/{id}/process-payment` - Process payment and generate ticket
+  - `POST /events/{id}/process-payment?booking_id={booking_id}` - Process payment and generate ticket
 - ✅ Automatic lock expiry after 5 minutes
-- ✅ SQLAlchemy ORM with PostgreSQL
+- ✅ SQLAlchemy ORM with MySQL
 
 ### **Frontend (Flutter 3.41.0)**
 - ✅ **50+ Production files** created:
@@ -129,7 +129,7 @@ BookingModel(
 | `/events/{id}/seats-status` | GET | `getAvailableSeats()` | ✅ Fixed |
 | `/events/{id}/lock-seats` | POST | `lockSeats()` | ✅ Working |
 | `/events/{id}/confirm-booking` | POST | `confirmBooking()` | ✅ Fixed |
-| `/bookings/{id}/process-payment` | POST | `processPayment()` | ✅ Working |
+| `/events/{id}/process-payment?booking_id={booking_id}` | POST | `processPayment()` | ✅ Working |
 
 ---
 
@@ -256,7 +256,7 @@ conversational-ticket-booking-system/
 | Frontend | Flutter | 3.41.0 |
 | State Management | Provider | 6.1.1 |
 | Backend | FastAPI | Latest |
-| Database | PostgreSQL | Latest |
+| Database | MySQL | Latest |
 | ORM | SQLAlchemy | Latest |
 | HTTP Client | http | 1.2.0 |
 | QR Generation | qr_flutter | 4.1.0 |

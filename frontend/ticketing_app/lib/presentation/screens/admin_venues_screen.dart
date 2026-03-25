@@ -137,12 +137,12 @@ class _VenueTile extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 4),
-            Row(
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
               children: [
                 _pill('${venue.totalRows} rows', AppColors.primary),
-                const SizedBox(width: 6),
                 _pill('${venue.seatsPerRow} / row', AppColors.primary),
-                const SizedBox(width: 6),
                 _pill('${venue.totalCapacity} seats', AppColors.success),
               ],
             ),

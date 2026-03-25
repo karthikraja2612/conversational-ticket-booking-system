@@ -11,6 +11,7 @@ import '../../domain/state/chat_state.dart';
 import '../../domain/state/event_state.dart';
 import '../widgets/common/gradient_button.dart';
 import '../widgets/common/glass_card.dart';
+import 'movie_showtime_selection_screen.dart';
 import 'seat_selection_screen.dart';
 
 class EventDetailScreen extends StatelessWidget {
@@ -101,7 +102,7 @@ class EventDetailScreen extends StatelessWidget {
                         ],
 
                         // ── Seat count picker ──
-                        _SeatCountCard()
+                        _SeatCountCard(event: event)
                             .animate()
                             .fadeIn(delay: 350.ms, duration: 400.ms),
                         const SizedBox(height: 32),
@@ -123,6 +124,12 @@ class EventDetailScreen extends StatelessWidget {
     );
   }
 }
+
+const Set<String> _noSeatTypes = {
+  'festival',
+  'comedy',
+  'others',
+};
 
 // ── Hero Card ─────────────────────────────────────────────────────────────────
 
@@ -325,7 +332,8 @@ class _DescriptionCard extends StatelessWidget {
 // ── Seat Count Card (stepper) ─────────────────────────────────────────────────
 
 class _SeatCountCard extends StatefulWidget {
-  const _SeatCountCard();
+  final EventModel event;
+  const _SeatCountCard({required this.event});
 
   @override
   State<_SeatCountCard> createState() => _SeatCountCardState();
@@ -353,6 +361,7 @@ class _SeatCountCardState extends State<_SeatCountCard> {
     final eventPrice =
         context.read<EventState>().primaryEvent?.price ?? 500.0;
     final total = eventPrice * _count;
+    final isNoSeatEvent = _noSeatTypes.contains(widget.event.eventType);
 
     return GlassCard(
       padding: const EdgeInsets.all(20),
@@ -420,8 +429,11 @@ class _SeatCountCardState extends State<_SeatCountCard> {
           ),
           const SizedBox(height: 8),
           Text(
-            'On the next screen, select your preferred seats. '
-            'We\'ll pre-highlight your AI-recommended spots.',
+            isNoSeatEvent
+              ? 'No seat selection needed for this event. '
+                'We\'ll take you straight to payment.'
+              : 'On the next screen, select your preferred seats. '
+                'We\'ll pre-highlight your AI-recommended spots.',
             style: AppTextStyles.caption
                 .copyWith(color: AppColors.textSecondary, height: 1.6),
             textAlign: TextAlign.center,
@@ -471,9 +483,15 @@ class _BookButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNoSeatEvent = _noSeatTypes.contains(event.eventType);
+    final isDynamicMovie = event.isDynamic;
     return GradientButton(
-      text: 'Choose My Seats',
-      icon: Icons.event_seat_rounded,
+      text: isDynamicMovie
+          ? 'Select Showtime'
+          : (isNoSeatEvent ? 'Proceed to Payment' : 'Choose My Seats'),
+      icon: isDynamicMovie
+          ? Icons.schedule_rounded
+          : (isNoSeatEvent ? Icons.payments_rounded : Icons.event_seat_rounded),
       width: double.infinity,
       onPressed: () {
         final auth = context.read<AuthState>();
@@ -485,6 +503,25 @@ class _BookButton extends StatelessWidget {
         booking.setCurrentUserId(auth.userId);
         booking.setCurrentEventId(event.id);
         eventState.setSelectedEvent(event);
+
+        if (isDynamicMovie) {
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) =>
+                  MovieShowtimeSelectionScreen(event: event),
+              transitionsBuilder: (_, anim, __, child) => SlideTransition(
+                position: Tween(
+                        begin: const Offset(1, 0), end: Offset.zero)
+                    .animate(CurvedAnimation(
+                        parent: anim, curve: Curves.easeOutCubic)),
+                child: child,
+              ),
+              transitionDuration: const Duration(milliseconds: 350),
+            ),
+          );
+          return;
+        }
 
         Navigator.push(
           context,

@@ -119,6 +119,11 @@ nlu:
     - can I get [2](quantity) tickets
     - ticket please
     - I want to go
+    - book tickets for food festival
+    - i want tickets for jazz night
+    - reserve seats for concert
+    - get me tickets for tech summit
+    - book seats for comedy show
 
 - intent: affirm
   examples: |
@@ -227,3 +232,109 @@ nlu:
     - wonderful
     - nice
     - cool
+
+- intent: ask_places
+  examples: |
+    - suggest places nearby
+    - what can I do nearby
+    - places to visit nearby
+    - show me places near me
+    - any tourist places nearby
+    - recommend places around here
+    - nearby attractions
+    - things to do nearby
+    - places to eat nearby
+    - restaurants near me
+    - cafes around me
+
+- synonym: food festival
+  examples: |
+    - food fest
+
+- synonym: music event
+  examples: |
+    - concert
+
+- intent: plan_trip
+  examples: |
+    - plan my trip
+    - suggest a day plan
+    - plan a visit
+    - what can I do nearby in 4 hours
+
+- intent: shorten_plan
+  examples: |
+    - make it shorter
+    - try a shorter plan
+    - shorten the trip
+    - can you make this shorter
+    - reduce the plan length
+    - quick version please
+    - make it a short plan
+    - shorten this itinerary
+
+- intent: extend_plan
+  examples: |
+    - make it longer
+    - extend the plan
+    - add more stops
+    - can you make this longer
+    - longer itinerary please
+    - expand the trip
+    - full day plan
+    - make it a long plan
+
+- intent: modify_preference
+  examples: |
+    - make it [outdoor](preference)
+    - focus on [indoor](preference) places
+    - change to [outdoor](preference)
+    - prefer [indoor](preference) spots
+    - switch to [outdoor](preference) activities
+    - make it more [indoor](preference)
+    - I want [outdoor](preference) stops
+    - keep it [indoor](preference) only
+
+- intent: ask_fun
+  examples: |
+    - suggest something fun
+    - I want to have fun
+    - fun places nearby
+    - any fun places
+    - show me entertainment places
+    - I feel bored
+    - give me something exciting
+    - anything fun around here
+
+- intent: ask_relax
+  examples: |
+    - I want to relax
+    - somewhere शांत and calm
+    - suggest a peaceful place
+    - places to chill
+    - I need a break
+    - relaxing places nearby
+    - calm places around me
+    - I want a quiet place
+
+- intent: ask_food
+  examples: |
+    - any good food places
+    - suggest restaurants nearby
+    - I want to eat
+    - food places around me
+    - any good restaurants
+    - I'm hungry
+    - where can I eat nearby
+    - suggest a place to eat
+
+- intent: ask_explore
+  examples: |
+    - I want to explore
+    - suggest museums nearby
+    - any places to explore
+    - show me museums
+    - I want to learn something
+    - cultural places nearby
+    - explore places around here
+    - anything historical nearby

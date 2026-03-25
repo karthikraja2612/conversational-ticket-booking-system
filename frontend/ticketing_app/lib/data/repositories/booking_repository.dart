@@ -23,7 +23,11 @@ class BookingRepository {
     return await _apiService.confirmBooking(eventId, userId, seatIds);
   }
 
-  Future<void> payForBooking(int eventId, int bookingId) async {
-    await _apiService.processPayment(eventId, bookingId);
+  Future<void> payForBooking(int bookingId, {bool forceFail = false}) async {
+    await _apiService.processPayment(bookingId, forceFail: forceFail);
+  }
+
+  Future<BookingModel> cancelBooking(int bookingId) async {
+    return await _apiService.cancelBooking(bookingId);
   }
 }

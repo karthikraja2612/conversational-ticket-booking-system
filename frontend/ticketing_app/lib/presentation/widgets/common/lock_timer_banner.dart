@@ -1,4 +1,5 @@
 ﻿import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -71,22 +72,23 @@ class _LockTimerBannerState extends State<LockTimerBanner> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: _timerColor.withValues(alpha: 0.4)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_clock_rounded, size: 16, color: _timerColor),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Seats locked — complete payment before timer expires',
-              style: AppTextStyles.caption.copyWith(color: _timerColor),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
+          Row(
+            children: [
+              Icon(Icons.lock_clock_rounded, size: 16, color: _timerColor),
+              const SizedBox(width: 8),
+              Text(
+                'Seat lock expires in',
+                style: AppTextStyles.caption.copyWith(color: _timerColor),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
+          const SizedBox(height: 6),
           Text(
             _formatDuration(_remaining),
-            style: AppTextStyles.h4.copyWith(
+            style: AppTextStyles.h3.copyWith(
               color: _timerColor,
               fontFeatures: const [FontFeature.tabularFigures()],
             ),

@@ -187,6 +187,7 @@ class AdminState extends ChangeNotifier {
     required DateTime eventDate,
     required double basePrice,
     String? imageUrl,
+    String? eventType,
   }) async {
     _setLoading(true);
     _error = null;
@@ -197,6 +198,7 @@ class AdminState extends ChangeNotifier {
         eventDate: eventDate,
         basePrice: basePrice,
         imageUrl: imageUrl,
+        eventType: eventType,
       );
       _events = [..._events, event];
       _setLoading(false);
@@ -218,6 +220,7 @@ class AdminState extends ChangeNotifier {
     DateTime? eventDate,
     double? basePrice,
     String? imageUrl,
+    String? eventType,
   }) async {
     _setLoading(true);
     _error = null;
@@ -228,6 +231,7 @@ class AdminState extends ChangeNotifier {
         eventDate: eventDate,
         basePrice: basePrice,
         imageUrl: imageUrl,
+        eventType: eventType,
       );
       _events = [
         for (final e in _events)
@@ -249,10 +253,18 @@ class AdminState extends ChangeNotifier {
   Future<bool> togglePublish(AdminEventModel event) async {
     _error = null;
     try {
-      if (event.isPublished) {
-        await _service.unpublishEvent(event.id);
+      if (event.eventType == 'movie') {
+        if (event.isPublished) {
+          await _service.unpublishMovieConfig(event.id);
+        } else {
+          await _service.publishMovieConfig(event.id);
+        }
       } else {
-        await _service.publishEvent(event.id);
+        if (event.isPublished) {
+          await _service.unpublishEvent(event.id);
+        } else {
+          await _service.publishEvent(event.id);
+        }
       }
       _events = [
         for (final e in _events)
@@ -266,6 +278,11 @@ class AdminState extends ChangeNotifier {
               status: event.isPublished ? 'draft' : 'published',
               imageUrl: e.imageUrl,
               createdAt: e.createdAt,
+              eventType: e.eventType,
+              showTimes: e.showTimes,
+              startDate: e.startDate,
+              endDate: e.endDate,
+              isDynamic: e.isDynamic,
             )
           else
             e
@@ -279,6 +296,97 @@ class AdminState extends ChangeNotifier {
     } catch (e) {
       _error = 'Failed to update event status: $e';
       notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> createMovieConfig({
+    required String movieTitle,
+    int? movieId,
+    required int venueId,
+    required String theatreName,
+    String? theatreLocation,
+    required List<String> showTimes,
+    required DateTime startDate,
+    required DateTime endDate,
+    required double basePrice,
+    Map<String, double>? pricingOverrides,
+    String? imageUrl,
+  }) async {
+    _setLoading(true);
+    _error = null;
+    try {
+      final config = await _service.createMovieConfig(
+        movieTitle: movieTitle,
+        movieId: movieId,
+        venueId: venueId,
+        theatreName: theatreName,
+        theatreLocation: theatreLocation,
+        showTimes: showTimes,
+        startDate: startDate,
+        endDate: endDate,
+        basePrice: basePrice,
+        pricingOverrides: pricingOverrides,
+        imageUrl: imageUrl,
+      );
+      _events = [..._events, config];
+      _setLoading(false);
+      return true;
+    } on AdminException catch (e) {
+      _error = e.message;
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      _error = 'Failed to create movie config: $e';
+      _setLoading(false);
+      return false;
+    }
+  }
+
+  Future<bool> updateMovieConfig(
+    int configId, {
+    String? movieTitle,
+    int? movieId,
+    int? venueId,
+    String? theatreName,
+    String? theatreLocation,
+    List<String>? showTimes,
+    DateTime? startDate,
+    DateTime? endDate,
+    double? basePrice,
+    Map<String, double>? pricingOverrides,
+    String? imageUrl,
+  }) async {
+    _setLoading(true);
+    _error = null;
+    try {
+      final updated = await _service.updateMovieConfig(
+        configId,
+        movieTitle: movieTitle,
+        movieId: movieId,
+        venueId: venueId,
+        theatreName: theatreName,
+        theatreLocation: theatreLocation,
+        showTimes: showTimes,
+        startDate: startDate,
+        endDate: endDate,
+        basePrice: basePrice,
+        pricingOverrides: pricingOverrides,
+        imageUrl: imageUrl,
+      );
+      _events = [
+        for (final e in _events)
+          if (e.id == configId) updated else e
+      ];
+      _setLoading(false);
+      return true;
+    } on AdminException catch (e) {
+      _error = e.message;
+      _setLoading(false);
+      return false;
+    } catch (e) {
+      _error = 'Failed to update movie config: $e';
+      _setLoading(false);
       return false;
     }
   }

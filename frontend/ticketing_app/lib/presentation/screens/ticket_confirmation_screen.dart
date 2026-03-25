@@ -17,6 +17,7 @@ import '../widgets/common/animated_loader.dart';
 import '../widgets/common/glass_card.dart';
 import '../widgets/common/gradient_button.dart';
 import 'home_screen.dart';
+import 'trip_plan_screen.dart';
 
 class TicketConfirmationScreen extends StatefulWidget {
   const TicketConfirmationScreen({super.key});
@@ -96,6 +97,7 @@ class _TicketConfirmationScreenState extends State<TicketConfirmationScreen> {
       body: Consumer<BookingState>(
         builder: (context, bookingState, _) {
           final booking = bookingState.currentBooking;
+          final event = context.read<EventState>().primaryEvent;
 
           if (booking == null) {
             return Center(
@@ -111,8 +113,43 @@ class _TicketConfirmationScreenState extends State<TicketConfirmationScreen> {
             );
           }
 
-          final qrData =
-              'TICKETBOT|BOOKING:${booking.id}|EVENT:${booking.eventId}|USER:${booking.userId}|SEATS:${booking.seatIds.join(",")}|AMOUNT:${booking.totalAmount}|EVENT:${context.read<EventState>().primaryEvent?.name ?? ''}';
+            String _rowLabel(int rowNum) {
+              String result = '';
+              int temp = rowNum;
+              while (temp > 0) {
+                temp--;
+                result = String.fromCharCode(65 + (temp % 26)) + result;
+                temp ~/= 26;
+              }
+              return result;
+            }
+
+            final seatMap = {
+              for (final s in bookingState.seats) s.id: s,
+            };
+            final seatLabels = booking.seatIds.map((id) {
+              final seat = seatMap[id];
+              if (seat == null) return 'Seat $id';
+              return '${_rowLabel(seat.rowNumber)}${seat.seatNumber}';
+            }).toList();
+
+            final qrData =
+              'TICKETBOT|BOOKING:${booking.id}|EVENT:${booking.eventId}|USER:${booking.userId}|SEATS:${booking.seatIds.join(",")}|AMOUNT:${booking.totalAmount}|EVENT:${event?.name ?? ''}';
+            final status = booking.status.toLowerCase();
+            final isCancelled = status == 'cancelled';
+            final statusLabel = isCancelled
+              ? 'CANCELLED'
+              : status == 'confirmed'
+                ? 'CONFIRMED ✓'
+                : status == 'pending_payment'
+                  ? 'PENDING PAYMENT'
+                  : status.toUpperCase();
+            final statusColor = isCancelled
+              ? AppColors.error
+              : status == 'confirmed'
+                ? AppColors.success
+                : AppColors.warning;
+            final canCancel = !isCancelled && (event?.date.isAfter(DateTime.now()) ?? false);
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -154,17 +191,15 @@ class _TicketConfirmationScreenState extends State<TicketConfirmationScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      _buildRow('Event', context.read<EventState>().primaryEvent?.name ?? ''),
+                      _buildRow('Event', event?.name ?? ''),
                       const SizedBox(height: 10),
-                      _buildRow('Date', context.read<EventState>().primaryEvent?.formattedDate ?? ''),
+                      _buildRow('Date', event?.formattedDate ?? ''),
                       const SizedBox(height: 10),
                       _buildRow('Booking ID', '#${booking.id}'),
                       const SizedBox(height: 10),
                       _buildRow(
                           'Seats',
-                          booking.seatIds
-                              .map((id) => 'Seat $id')
-                              .join(', ')),
+                          seatLabels.join(', ')),
                       const SizedBox(height: 10),
                       _buildRow(
                           'Total Seats', '${booking.seatIds.length}'),
@@ -178,8 +213,27 @@ class _TicketConfirmationScreenState extends State<TicketConfirmationScreen> {
                         isTotal: true,
                       ),
                       const SizedBox(height: 10),
-                      _buildRow('Status', 'CONFIRMED ✓',
-                          isTotal: true, valueColor: AppColors.success),
+                      _buildRow(
+                        'Status',
+                        statusLabel,
+                        isTotal: true,
+                        valueColor: statusColor,
+                      ),
+                      if (booking.refundStatus != null) ...[
+                        const SizedBox(height: 10),
+                        _buildRow(
+                          'Refund',
+                          booking.refundStatus!.toUpperCase(),
+                          valueColor: AppColors.warning,
+                        ),
+                      ],
+                      if (booking.cancellationTime != null) ...[
+                        const SizedBox(height: 10),
+                        _buildRow(
+                          'Cancelled At',
+                          booking.cancellationTime!.toLocal().toString(),
+                        ),
+                      ],
                     ],
                   ),
                 )
@@ -259,6 +313,51 @@ class _TicketConfirmationScreenState extends State<TicketConfirmationScreen> {
                     .animate()
                     .fadeIn(delay: 600.ms, duration: 500.ms)
                     .slideY(begin: 0.2, end: 0),
+                const SizedBox(height: 24),
+                GradientButton(
+                  text: 'Plan Your Trip',
+                  icon: Icons.route_rounded,
+                  width: double.infinity,
+                  onPressed: () {
+                    final bookingId = booking.id;
+                    if (bookingId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Booking details missing.'),
+                        ),
+                      );
+                      return;
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => TripPlanScreen(bookingId: bookingId),
+                      ),
+                    );
+                  },
+                )
+                    .animate()
+                    .fadeIn(delay: 680.ms, duration: 500.ms)
+                    .slideY(begin: 0.2, end: 0),
+                if (canCancel) ...[
+                  const SizedBox(height: 24),
+                  GradientButton(
+                    text: 'Cancel Ticket',
+                    onPressed: () async {
+                      final ok = await bookingState.cancelBooking();
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            ok
+                                ? 'Booking cancelled. Refund ${bookingState.currentBooking?.refundStatus ?? ''}'.trim()
+                                : bookingState.errorMessage ?? 'Cancellation failed',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
                 const SizedBox(height: 32),
                 GradientButton(
                   text: 'Done — Go Home',

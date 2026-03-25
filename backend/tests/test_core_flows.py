@@ -8,7 +8,7 @@ Flows covered
 3. /users/me  GET  (authenticated)
 4. Lock       POST /events/{id}/lock-seats  (requires auth)
 5. Confirm    POST /events/{id}/confirm-booking  (requires auth)
-6. Payment    POST /events/{id}/process-payment  (requires auth)
+6. Payment    POST /bookings/{id}/process-payment  (requires auth)
 
 Items 4-6 only assert that 401 is returned when *unauthenticated* and that
 the correct error shape is returned when authenticated but no valid data
@@ -166,5 +166,5 @@ def test_confirm_requires_auth(client):
 
 
 def test_payment_requires_auth(client):
-    res = client.post("/events/1/process-payment", params={"booking_id": 1})
+    res = client.post("/bookings/1/process-payment")
     assert res.status_code == 401

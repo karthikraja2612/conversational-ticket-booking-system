@@ -3,7 +3,7 @@
 ## Prerequisites Check
 - [x] Python 3.13 installed
 - [x] Flutter 3.41.0 installed (3 devices detected)
-- [x] PostgreSQL running
+- [x] MySQL running
 - [x] Android emulator available
 
 ---
@@ -45,9 +45,9 @@ flutter run
 ### **Backend Won't Start**
 ```bash
 # Install dependencies
-pip install fastapi uvicorn sqlalchemy psycopg2-binary
+pip install fastapi uvicorn sqlalchemy pymysql
 
-# Check PostgreSQL connection in backend/app/database.py
+# Check MySQL connection in backend/app/database.py
 ```
 
 ### **Flutter Build Errors**
@@ -64,12 +64,12 @@ flutter run
 
 ### **Database Errors**
 ```bash
-# Create database
-psql -U postgres
+# Create database (example)
+mysql -u root -p
 CREATE DATABASE ticketing_system;
-\q
+EXIT;
 
-# Update connection string in backend/app/database.py
+# Update connection string in backend/.env (DATABASE_URL)
 ```
 
 ---
@@ -103,22 +103,24 @@ curl http://localhost:8000/events/1/seats-status
 ### **Test 2: Lock Seats**
 ```bash
 curl -X POST http://localhost:8000/events/1/lock-seats \
+  -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"user_id\": 1, \"seat_ids\": [1, 2, 3]}"
+  -d "{\"seat_ids\": [1, 2, 3]}"
 ```
 
 ### **Test 3: Confirm Booking**
 ```bash
 curl -X POST http://localhost:8000/events/1/confirm-booking \
+  -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"user_id\": 1, \"seat_ids\": [1, 2, 3]}"
+  -d "{\"seat_ids\": [1, 2, 3]}"
 ```
 
 ### **Test 4: Process Payment**
 ```bash
-curl -X POST http://localhost:8000/bookings/1/process-payment \
-  -H "Content-Type: application/json" \
-  -d "{\"payment_method\": \"upi\", \"transaction_id\": \"TXN123\"}"
+curl -X POST "http://localhost:8000/events/1/process-payment?booking_id=1" \
+  -H "Authorization: Bearer TOKEN" \
+  -H "Content-Type: application/json"
 ```
 
 ---
@@ -154,7 +156,7 @@ curl -X POST http://localhost:8000/bookings/1/process-payment \
 
 1. **Check Logs**: Backend terminal shows API call logs
 2. **Flutter DevTools**: Press `V` in terminal after `flutter run`
-3. **Database Check**: Verify data in PostgreSQL
+3. **Database Check**: Verify data in MySQL
 4. **Network Inspector**: Use `flutter run --verbose` for detailed logs
 
 ---

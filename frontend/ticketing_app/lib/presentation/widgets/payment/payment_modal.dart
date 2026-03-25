@@ -13,6 +13,7 @@ class PaymentModal extends StatefulWidget {
   final int seatCount;
   final VoidCallback onPaymentComplete;
   final bool isProcessing;
+  final String? errorMessage;
 
   const PaymentModal({
     super.key,
@@ -20,6 +21,7 @@ class PaymentModal extends StatefulWidget {
     required this.seatCount,
     required this.onPaymentComplete,
     this.isProcessing = false,
+    this.errorMessage,
   });
 
   @override
@@ -163,6 +165,39 @@ class _PaymentModalState extends State<PaymentModal> {
                 ),
               ).animate().fadeIn(delay: 150.ms, duration: 300.ms),
               const SizedBox(height: 24),
+
+              if (widget.errorMessage != null) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: AppColors.error, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          widget.errorMessage!,
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.error),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: widget.isProcessing ? null : _submit,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ).animate().fadeIn(delay: 180.ms, duration: 300.ms),
+                const SizedBox(height: 16),
+              ],
 
               // ── Card form ─────────────────────────────────────────
               Row(

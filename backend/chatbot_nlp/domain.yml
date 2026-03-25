@@ -6,6 +6,15 @@ intents:
   - search_event
   - ask_pricing
   - book_tickets
+  - ask_places
+  - plan_trip
+  - shorten_plan
+  - extend_plan
+  - modify_preference
+  - ask_fun
+  - ask_relax
+  - ask_food
+  - ask_explore
   - affirm
   - deny
   - bot_challenge
@@ -17,6 +26,43 @@ entities:
   - genre
   - time
   - quantity
+  - location
+  - area
+  - city
+  - budget
+  - duration
+  - preference
+
+slots:
+  plan_hours:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: custom
+  plan_area:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: custom
+  plan_budget:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: custom
+  plan_duration:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: custom
+  plan_preference:
+    type: text
+    influence_conversation: false
+    mappings:
+    - type: custom
+
+actions:
+  - action_get_nearby_places
+  - action_plan_trip
 
 responses:
   utter_greet:

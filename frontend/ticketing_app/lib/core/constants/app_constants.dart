@@ -1,12 +1,11 @@
-﻿import 'package:flutter_dotenv/flutter_dotenv.dart';
-
-class AppConstants {
+﻿class AppConstants {
   /// Reads API_BASE_URL from assets/.env at runtime.
   /// Edit assets/.env to switch between emulator, device, or production URL —
   /// no rebuild required.
-  static String get baseUrl =>
-      dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8000';
-  // static const String baseUrl = "http://10.92.76.147:8000";
+  // static String get baseUrl =>
+      // dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:8000';
+      // dotenv.env['API_BASE_URL'] ?? 'http://10.120.97.147:8000';
+  static const String baseUrl = "http://10.36.49.147:8000";
   // defaultEventId removed — always use EventState.primaryEvent?.id
   static const int lockDurationSeconds = 300;
   static const int warningThresholdSeconds = 120;

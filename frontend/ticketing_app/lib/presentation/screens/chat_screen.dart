@@ -36,6 +36,48 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  Future<void> _handleResumePrompt() async {
+    final chat = context.read<ChatState>();
+    final booking = context.read<BookingState>();
+    final payload = chat.resumeOffer;
+    if (payload == null) return;
+
+    final eventId = payload['event_id'] as int?;
+    if (eventId == null) {
+      chat.consumeResumeOffer();
+      return;
+    }
+
+    final eventState = context.read<EventState>();
+    final desired = context.read<ChatState>().pendingQuantity;
+    if (desired != null) {
+      booking.setDesiredSeatCount(desired);
+    }
+    final found = eventState.events.where((e) => e.id == eventId).toList();
+    if (found.isNotEmpty) {
+      eventState.setSelectedEvent(found.first);
+    } else {
+      eventState.setSelectedEvent(EventModel(
+        id: eventId,
+        name: payload['event_name'] as String? ?? 'Event #$eventId',
+        description: '',
+        venue: '',
+        date: DateTime.now(),
+        price: 0,
+        eventType: (payload['event_type'] as String? ?? 'others').toLowerCase(),
+      ));
+    }
+
+    chat.consumeResumeOffer();
+    await booking.resumeFromPayload(payload);
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SeatSelectionScreen()),
+    );
+  }
+
   void _onChatStateChanged() {
     if (!mounted) return;
     final chat = context.read<ChatState>();
@@ -47,6 +89,10 @@ class _ChatScreenState extends State<ChatScreen> {
         final booking = context.read<BookingState>();
         booking.setCurrentEventId(eventId);
         booking.clearSelection();
+        final desired = context.read<ChatState>().pendingQuantity;
+        if (desired != null) {
+          booking.setDesiredSeatCount(desired);
+        }
         // Find the event in EventState's list
         final eventState = context.read<EventState>();
         final found = eventState.events.where((e) => e.id == eventId).toList();
@@ -61,6 +107,7 @@ class _ChatScreenState extends State<ChatScreen> {
             venue: '',
             date: DateTime.now(),
             price: 0,
+            eventType: 'others',
           ));
         }
       }
@@ -132,6 +179,33 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Clear chat',
+            icon: const Icon(Icons.delete_outline_rounded),
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Clear chat?'),
+                  content: const Text('This clears the current chat messages.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext, true),
+                      child: const Text('Clear'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                if (!context.mounted) return;
+                await context.read<ChatState>().clearMessages();
+              }
+            },
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Consumer<BookingState>(
@@ -164,6 +238,72 @@ class _ChatScreenState extends State<ChatScreen> {
 
           return Column(
             children: [
+              if (chatState.hasResumeOffer)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline,
+                          size: 18, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'You have an ongoing booking. Resume?',
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.primary),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _handleResumePrompt,
+                        child: const Text('Resume'),
+                      ),
+                      TextButton(
+                        onPressed: chatState.consumeResumeOffer,
+                        child: const Text('Dismiss'),
+                      ),
+                    ],
+                  ),
+                ),
+              if (chatState.hasLastError)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.error.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.wifi_off_rounded,
+                          size: 18, color: AppColors.error),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          chatState.lastErrorMessage ?? 'Network error',
+                          style: AppTextStyles.caption
+                              .copyWith(color: AppColors.error),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: chatState.retryLastMessage,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
               Expanded(
                 child: ListView.builder(
                   controller: _scrollController,

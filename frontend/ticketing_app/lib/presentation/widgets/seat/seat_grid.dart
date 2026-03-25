@@ -95,11 +95,6 @@ class SeatGrid extends StatelessWidget {
 
         final double seatSize = idealSeatSize.clamp(minSeatSize, maxSeatSize);
 
-        // Build the full seats content width so we know whether to scroll
-        final double contentWidth = rowLabelWidth +
-            (seatSize * maxSeatsInRow) +
-            (seatSpacing * maxSeatsInRow);
-
         final Widget rowsColumn = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -333,7 +328,7 @@ class _SeatTile extends StatelessWidget {
                 ]
               : null,
         ),
-        child: child != null ? Center(child: child) : null,
+        child: Center(child: child),
       ),
     );
   }

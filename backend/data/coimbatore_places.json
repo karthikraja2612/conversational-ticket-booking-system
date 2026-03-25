@@ -1,0 +1,242 @@
+[
+  {
+    "name": "Brookefields Mall",
+    "category": "Mall",
+    "area": "RS Puram",
+    "type": "hangout",
+    "latitude": 11.0055,
+    "longitude": 76.9661
+  },
+  {
+    "name": "Fun Republic Mall",
+    "category": "Mall",
+    "area": "Peelamedu",
+    "type": "hangout",
+    "latitude": 11.0305,
+    "longitude": 77.0266
+  },
+  {
+    "name": "Prozone Mall",
+    "category": "Mall",
+    "area": "Saravanampatti",
+    "type": "hangout",
+    "latitude": 11.0797,
+    "longitude": 77.0020
+  },
+  {
+    "name": "Lakshmi Mills Mall",
+    "category": "Mall",
+    "area": "Avinashi Road",
+    "type": "hangout",
+    "latitude": 11.0183,
+    "longitude": 76.9725
+  },
+  {
+    "name": "KG Cinemas Complex",
+    "category": "Entertainment",
+    "area": "RS Puram",
+    "type": "fun",
+    "latitude": 11.0050,
+    "longitude": 76.9632
+  },
+  {
+    "name": "INOX Prozone",
+    "category": "Entertainment",
+    "area": "Saravanampatti",
+    "type": "fun",
+    "latitude": 11.0795,
+    "longitude": 77.0018
+  },
+  {
+    "name": "The Cinema by SPI",
+    "category": "Entertainment",
+    "area": "Brookefields",
+    "type": "fun",
+    "latitude": 11.0054,
+    "longitude": 76.9663
+  },
+  {
+    "name": "Black Thunder Theme Park",
+    "category": "Entertainment",
+    "area": "Mettupalayam",
+    "type": "fun",
+    "latitude": 11.3125,
+    "longitude": 76.9300
+  },
+  {
+    "name": "VOC Park and Zoo",
+    "category": "Park",
+    "area": "Gandhipuram",
+    "type": "attraction",
+    "latitude": 11.0168,
+    "longitude": 76.9656
+  },
+  {
+    "name": "Race Course Park",
+    "category": "Park",
+    "area": "Race Course",
+    "type": "hangout",
+    "latitude": 11.0012,
+    "longitude": 76.9786
+  },
+  {
+    "name": "Perur Pateeswarar Temple Grounds",
+    "category": "Park",
+    "area": "Perur",
+    "type": "attraction",
+    "latitude": 10.9755,
+    "longitude": 76.9122
+  },
+  {
+    "name": "TNAU Botanical Garden",
+    "category": "Park",
+    "area": "Lawley Road",
+    "type": "attraction",
+    "latitude": 11.0105,
+    "longitude": 76.9513
+  },
+  {
+    "name": "Gedee Car Museum",
+    "category": "Museum",
+    "area": "Avinashi Road",
+    "type": "attraction",
+    "latitude": 11.0169,
+    "longitude": 76.9720
+  },
+  {
+    "name": "Gass Forest Museum",
+    "category": "Museum",
+    "area": "RS Puram",
+    "type": "attraction",
+    "latitude": 11.0089,
+    "longitude": 76.9558
+  },
+  {
+    "name": "Gedee Textile Museum",
+    "category": "Museum",
+    "area": "Race Course",
+    "type": "attraction",
+    "latitude": 11.0030,
+    "longitude": 76.9735
+  },
+  {
+    "name": "Kasthuri Sreenivasan Art Gallery",
+    "category": "Museum",
+    "area": "Peelamedu",
+    "type": "attraction",
+    "latitude": 11.0350,
+    "longitude": 77.0285
+  },
+  {
+    "name": "Annapoorna Gowrishankar",
+    "category": "Restaurant",
+    "area": "RS Puram",
+    "type": "food",
+    "latitude": 11.0036,
+    "longitude": 76.9625
+  },
+  {
+    "name": "Sree Annapoorna Sree Gowrishankar",
+    "category": "Restaurant",
+    "area": "Gandhipuram",
+    "type": "food",
+    "latitude": 11.0182,
+    "longitude": 76.9677
+  },
+  {
+    "name": "Hari Bhavanam",
+    "category": "Restaurant",
+    "area": "Gandhipuram",
+    "type": "food",
+    "latitude": 11.0174,
+    "longitude": 76.9680
+  },
+  {
+    "name": "Junior Kuppanna",
+    "category": "Restaurant",
+    "area": "Race Course",
+    "type": "food",
+    "latitude": 11.0025,
+    "longitude": 76.9770
+  },
+  {
+    "name": "Barbeque Nation",
+    "category": "Restaurant",
+    "area": "Avinashi Road",
+    "type": "food",
+    "latitude": 11.0200,
+    "longitude": 76.9755
+  },
+  {
+    "name": "Shree Anandhaas",
+    "category": "Restaurant",
+    "area": "Peelamedu",
+    "type": "food",
+    "latitude": 11.0330,
+    "longitude": 77.0255
+  },
+  {
+    "name": "Cream Centre",
+    "category": "Restaurant",
+    "area": "RS Puram",
+    "type": "food",
+    "latitude": 11.0062,
+    "longitude": 76.9648
+  },
+  {
+    "name": "Bird on Tree",
+    "category": "Restaurant",
+    "area": "RS Puram",
+    "type": "food",
+    "latitude": 11.0041,
+    "longitude": 76.9610
+  },
+  {
+    "name": "On The Go Café",
+    "category": "Restaurant",
+    "area": "Race Course",
+    "type": "food",
+    "latitude": 11.0018,
+    "longitude": 76.9792
+  },
+  {
+    "name": "Fun City",
+    "category": "Entertainment",
+    "area": "Brookefields Mall",
+    "type": "fun",
+    "latitude": 11.0056,
+    "longitude": 76.9662
+  },
+  {
+    "name": "TimeZone Arcade",
+    "category": "Entertainment",
+    "area": "Prozone Mall",
+    "type": "fun",
+    "latitude": 11.0798,
+    "longitude": 77.0022
+  },
+  {
+    "name": "Snow Fantasy",
+    "category": "Entertainment",
+    "area": "Fun Republic Mall",
+    "type": "fun",
+    "latitude": 11.0307,
+    "longitude": 77.0268
+  },
+  {
+    "name": "VOC Children's Park",
+    "category": "Park",
+    "area": "Gandhipuram",
+    "type": "hangout",
+    "latitude": 11.0170,
+    "longitude": 76.9660
+  },
+  {
+    "name": "Singanallur Lake Park",
+    "category": "Park",
+    "area": "Singanallur",
+    "type": "hangout",
+    "latitude": 10.9985,
+    "longitude": 77.0280
+  }
+]

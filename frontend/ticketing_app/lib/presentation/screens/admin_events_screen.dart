@@ -187,12 +187,38 @@ class _EventTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Row(
                   children: [
+                    const Icon(Icons.category_outlined,
+                        size: 13, color: AppColors.textTertiary),
+                    const SizedBox(width: 4),
+                    Text(event.eventType.toUpperCase(),
+                        style: AppTextStyles.body2),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
                     const Icon(Icons.calendar_today_outlined,
                         size: 13, color: AppColors.textTertiary),
                     const SizedBox(width: 4),
                     Text(event.formattedDate, style: AppTextStyles.body2),
                   ],
                 ),
+                if (event.eventType == 'movie' && event.showTimes.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.schedule_rounded,
+                            size: 13, color: AppColors.textTertiary),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(event.showTimes.join(', '),
+                              style: AppTextStyles.body2,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 2),
                 Row(
                   children: [
@@ -278,10 +304,15 @@ class _EventFormSheetState extends State<_EventFormSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameCtrl;
   late final TextEditingController _priceCtrl;
+  late final TextEditingController _vipPriceCtrl;
+  late final TextEditingController _showTimesCtrl;
   late final TextEditingController _imageCtrl;
   DateTime? _selectedDate;
+  DateTime? _startDate;
+  DateTime? _endDate;
   int? _selectedVenueId;
   bool _submitting = false;
+  String _selectedEventType = 'concert';
 
   bool get _isEdit => widget.existing != null;
 
@@ -292,15 +323,24 @@ class _EventFormSheetState extends State<_EventFormSheet> {
     _nameCtrl = TextEditingController(text: e?.name ?? '');
     _priceCtrl =
         TextEditingController(text: e != null ? e.basePrice.toString() : '');
+    _vipPriceCtrl = TextEditingController(text: '');
+    _showTimesCtrl = TextEditingController(
+      text: e != null && e.showTimes.isNotEmpty ? e.showTimes.join(', ') : '',
+    );
     _imageCtrl = TextEditingController(text: e?.imageUrl ?? '');
     _selectedDate = e?.eventDate;
+    _startDate = e?.startDate;
+    _endDate = e?.endDate;
     _selectedVenueId = e?.venueId;
+    _selectedEventType = e?.eventType ?? 'concert';
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _priceCtrl.dispose();
+    _vipPriceCtrl.dispose();
+    _showTimesCtrl.dispose();
     _imageCtrl.dispose();
     super.dispose();
   }
@@ -347,14 +387,41 @@ class _EventFormSheetState extends State<_EventFormSheet> {
     });
   }
 
+  Future<void> _pickRangeDate({required bool isStart}) async {
+    final now = DateTime.now();
+    final initial = isStart
+        ? (_startDate ?? now)
+        : (_endDate ?? (_startDate ?? now));
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365 * 2)),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.primary,
+            surface: AppColors.surface,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (date == null || !mounted) return;
+    setState(() {
+      if (isStart) {
+        _startDate = DateTime(date.year, date.month, date.day);
+        if (_endDate != null && _endDate!.isBefore(_startDate!)) {
+          _endDate = _startDate;
+        }
+      } else {
+        _endDate = DateTime(date.year, date.month, date.day);
+      }
+    });
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Please select event date & time'),
-          backgroundColor: AppColors.error));
-      return;
-    }
     if (_selectedVenueId == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Please select a venue'),
@@ -368,23 +435,91 @@ class _EventFormSheetState extends State<_EventFormSheet> {
     final imgUrl =
         _imageCtrl.text.trim().isNotEmpty ? _imageCtrl.text.trim() : null;
 
-    bool ok;
-    if (_isEdit) {
-      ok = await admin.updateEvent(
-        widget.existing!.id,
-        name: _nameCtrl.text.trim(),
-        eventDate: _selectedDate,
-        basePrice: price,
-        imageUrl: imgUrl,
-      );
+    bool ok = false;
+    if (_selectedEventType == 'movie') {
+      final showTimes = _parseShowTimes(_showTimesCtrl.text);
+      if (showTimes.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Please add at least one show time (HH:MM)'),
+              backgroundColor: AppColors.error));
+        }
+        setState(() => _submitting = false);
+        return;
+      }
+      if (_startDate == null || _endDate == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Please select start and end dates'),
+              backgroundColor: AppColors.error));
+        }
+        setState(() => _submitting = false);
+        return;
+      }
+
+      final venue = admin.venues.firstWhere((v) => v.id == _selectedVenueId);
+      final vipText = _vipPriceCtrl.text.trim();
+      final vipPrice = vipText.isNotEmpty ? double.tryParse(vipText) : null;
+      final pricingOverrides = <String, double>{
+        if (vipPrice != null) 'vip': vipPrice,
+      };
+
+      if (_isEdit) {
+        ok = await admin.updateMovieConfig(
+          widget.existing!.id,
+          movieTitle: _nameCtrl.text.trim(),
+          venueId: _selectedVenueId,
+          theatreName: venue.name,
+          theatreLocation: venue.location,
+          showTimes: showTimes,
+          startDate: _startDate,
+          endDate: _endDate,
+          basePrice: price,
+          pricingOverrides: pricingOverrides.isEmpty ? null : pricingOverrides,
+          imageUrl: imgUrl,
+        );
+      } else {
+        ok = await admin.createMovieConfig(
+          movieTitle: _nameCtrl.text.trim(),
+          venueId: _selectedVenueId!,
+          theatreName: venue.name,
+          theatreLocation: venue.location,
+          showTimes: showTimes,
+          startDate: _startDate!,
+          endDate: _endDate!,
+          basePrice: price,
+          pricingOverrides: pricingOverrides.isEmpty ? null : pricingOverrides,
+          imageUrl: imgUrl,
+        );
+      }
     } else {
-      ok = await admin.createEvent(
-        name: _nameCtrl.text.trim(),
-        venueId: _selectedVenueId!,
-        eventDate: _selectedDate!,
-        basePrice: price,
-        imageUrl: imgUrl,
-      );
+      if (_selectedDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Please select event date & time'),
+            backgroundColor: AppColors.error));
+        setState(() => _submitting = false);
+        return;
+      }
+
+      if (_isEdit) {
+        ok = await admin.updateEvent(
+          widget.existing!.id,
+          name: _nameCtrl.text.trim(),
+          eventDate: _selectedDate,
+          basePrice: price,
+          imageUrl: imgUrl,
+          eventType: _selectedEventType,
+        );
+      } else {
+        ok = await admin.createEvent(
+          name: _nameCtrl.text.trim(),
+          venueId: _selectedVenueId!,
+          eventDate: _selectedDate!,
+          basePrice: price,
+          imageUrl: imgUrl,
+          eventType: _selectedEventType,
+        );
+      }
     }
     if (!mounted) return;
     setState(() => _submitting = false);
@@ -400,6 +535,16 @@ class _EventFormSheetState extends State<_EventFormSheet> {
         backgroundColor: AppColors.error,
       ));
     }
+  }
+
+  List<String> _parseShowTimes(String raw) {
+    final parts = raw
+        .split(RegExp(r'[\n,]'))
+        .map((t) => t.trim())
+        .where((t) => t.isNotEmpty)
+        .toList();
+    final regex = RegExp(r'^\d{1,2}:\d{2}$');
+    return [for (final t in parts) if (regex.hasMatch(t)) t];
   }
 
   @override
@@ -437,14 +582,74 @@ class _EventFormSheetState extends State<_EventFormSheet> {
                 Text(_isEdit ? 'Edit Event' : 'Create Event',
                     style: AppTextStyles.h3),
                 const SizedBox(height: 20),
+                DropdownButtonFormField<String>(
+                  value: _selectedEventType,
+                  decoration: InputDecoration(
+                    labelText: 'Event Type',
+                    labelStyle: AppTextStyles.body2,
+                    prefixIcon: const Icon(Icons.category_rounded,
+                        color: AppColors.textTertiary, size: 18),
+                    filled: true,
+                    fillColor: AppColors.surfaceLight,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: AppColors.borderSubtle),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide:
+                          const BorderSide(color: AppColors.borderSubtle),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                          color: AppColors.primary, width: 1.5),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
+                  ),
+                  dropdownColor: AppColors.surfaceLight,
+                  style: AppTextStyles.body1,
+                  items: const [
+                    DropdownMenuItem(value: 'movie', child: Text('Movie')),
+                    DropdownMenuItem(value: 'concert', child: Text('Concert')),
+                    DropdownMenuItem(value: 'festival', child: Text('Festival')),
+                    DropdownMenuItem(value: 'sports', child: Text('Sports')),
+                    DropdownMenuItem(value: 'comedy', child: Text('Comedy')),
+                    DropdownMenuItem(value: 'others', child: Text('Others')),
+                  ],
+                  onChanged: (v) => setState(() {
+                    _selectedEventType = v ?? 'concert';
+                  }),
+                ),
+                const SizedBox(height: 12),
                 // Name
-                _field(_nameCtrl, 'Event Name', 'e.g. Music Night',
+                _field(
+                    _nameCtrl,
+                    _selectedEventType == 'movie'
+                        ? 'Movie Name'
+                        : 'Event Name',
+                    _selectedEventType == 'movie'
+                        ? 'e.g. Oppenheimer'
+                        : 'e.g. Music Night',
                     Icons.event_rounded),
                 const SizedBox(height: 12),
                 // Price
-                _field(_priceCtrl, 'Base Price (₹)', 'e.g. 500',
+                _field(
+                    _priceCtrl,
+                    _selectedEventType == 'movie'
+                        ? 'Standard Price (₹)'
+                        : 'Base Price (₹)',
+                    'e.g. 500',
                     Icons.currency_rupee_rounded,
                     isDecimal: true),
+                if (_selectedEventType == 'movie') ...[
+                  const SizedBox(height: 12),
+                  _field(_vipPriceCtrl, 'VIP Price (₹)', 'e.g. 800',
+                      Icons.star_rounded,
+                      isDecimal: true, required: false),
+                ],
                 const SizedBox(height: 12),
                 // Image URL
                 _field(_imageCtrl, 'Image URL (optional)',
@@ -452,7 +657,7 @@ class _EventFormSheetState extends State<_EventFormSheet> {
                     required: false),
                 const SizedBox(height: 12),
                 // Venue Dropdown (only for create)
-                if (!_isEdit) ...[
+                if (!_isEdit || _selectedEventType == 'movie') ...[
                   DropdownButtonFormField<int>(
                     value: _selectedVenueId,  // current selection binding
                     decoration: InputDecoration(
@@ -497,42 +702,65 @@ class _EventFormSheetState extends State<_EventFormSheet> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                // Date picker
-                GestureDetector(
-                  onTap: _pickDate,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.borderSubtle),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_month_outlined,
-                            color: AppColors.textTertiary, size: 18),
-                        const SizedBox(width: 12),
-                        Text(
-                          _selectedDate == null
-                              ? 'Select date & time'
-                              : '${_selectedDate!.day.toString().padLeft(2, '0')}/'
-                                  '${_selectedDate!.month.toString().padLeft(2, '0')}/'
-                                  '${_selectedDate!.year}  '
-                                  '${_selectedDate!.hour.toString().padLeft(2, '0')}:'
-                                  '${_selectedDate!.minute.toString().padLeft(2, '0')}',
-                          style: _selectedDate == null
-                              ? AppTextStyles.body2
-                                  .copyWith(color: AppColors.textTertiary)
-                              : AppTextStyles.body1,
-                        ),
-                        const Spacer(),
-                        const Icon(Icons.edit_calendar_outlined,
-                            color: AppColors.primary, size: 18),
-                      ],
+                if (_selectedEventType != 'movie')
+                  GestureDetector(
+                    onTap: _pickDate,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceLight,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.borderSubtle),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_month_outlined,
+                              color: AppColors.textTertiary, size: 18),
+                          const SizedBox(width: 12),
+                          Text(
+                            _selectedDate == null
+                                ? 'Select date & time'
+                                : '${_selectedDate!.day.toString().padLeft(2, '0')}/'
+                                    '${_selectedDate!.month.toString().padLeft(2, '0')}/'
+                                    '${_selectedDate!.year}  '
+                                    '${_selectedDate!.hour.toString().padLeft(2, '0')}:'
+                                    '${_selectedDate!.minute.toString().padLeft(2, '0')}',
+                            style: _selectedDate == null
+                                ? AppTextStyles.body2
+                                    .copyWith(color: AppColors.textTertiary)
+                                : AppTextStyles.body1,
+                          ),
+                          const Spacer(),
+                          const Icon(Icons.edit_calendar_outlined,
+                              color: AppColors.primary, size: 18),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                if (_selectedEventType == 'movie') ...[
+                  _field(_showTimesCtrl, 'Show Timings', '10:00, 13:00, 19:00',
+                      Icons.schedule_rounded),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _pickRangeDate(isStart: true),
+                          child: _dateRangeChip(
+                              _startDate, 'Start Date'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _pickRangeDate(isStart: false),
+                          child: _dateRangeChip(_endDate, 'End Date'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 24),
                 SizedBox(
                   width: double.infinity,
@@ -617,6 +845,36 @@ class _EventFormSheetState extends State<_EventFormSheet> {
         if (isDecimal && double.parse(v.trim()) <= 0) return 'Must be > 0';
         return null;
       },
+    );
+  }
+
+  Widget _dateRangeChip(DateTime? date, String placeholder) {
+    final label = date == null
+        ? placeholder
+        : '${date.day.toString().padLeft(2, '0')}/'
+            '${date.month.toString().padLeft(2, '0')}/'
+            '${date.year}';
+    final muted = date == null;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderSubtle),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.calendar_today_outlined,
+              color: AppColors.textTertiary, size: 18),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: muted
+                ? AppTextStyles.body2.copyWith(color: AppColors.textTertiary)
+                : AppTextStyles.body1,
+          ),
+        ],
+      ),
     );
   }
 }

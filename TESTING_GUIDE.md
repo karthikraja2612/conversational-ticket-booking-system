@@ -33,9 +33,9 @@ Expected Response:
 ### 2. Lock Seats
 ```bash
 curl -X POST http://localhost:8000/events/1/lock-seats \
+  -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": 1,
     "seat_ids": [1, 2, 3]
   }'
 ```
@@ -51,9 +51,9 @@ Expected Response:
 ### 3. Confirm Booking
 ```bash
 curl -X POST http://localhost:8000/events/1/confirm-booking \
+  -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": 1,
     "seat_ids": [1, 2, 3]
   }'
 ```
@@ -70,6 +70,7 @@ Expected Response:
 ### 4. Process Payment
 ```bash
 curl -X POST "http://localhost:8000/events/1/process-payment?booking_id=1" \
+  -H "Authorization: Bearer TOKEN" \
   -H "Content-Type: application/json"
 ```
 

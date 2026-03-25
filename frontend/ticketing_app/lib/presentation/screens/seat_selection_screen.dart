@@ -5,6 +5,8 @@ import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
 import '../../core/utils/extensions.dart';
+import '../../data/models/event_model.dart';
+import '../../data/models/seat_model.dart';
 import '../../domain/state/booking_state.dart';
 import '../../domain/state/chat_state.dart';
 import '../../domain/state/event_state.dart';
@@ -24,6 +26,14 @@ class SeatSelectionScreen extends StatefulWidget {
 }
 
 class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
+  bool _autoHandled = false;
+
+  static const Set<String> _noSeatTypes = {
+    'festival',
+    'comedy',
+    'others',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -36,9 +46,66 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
           if (mounted && chat.recommendedSeats.isNotEmpty) {
             booking.applyRecommendedSeats(chat.recommendedSeats);
           }
+          if (mounted) {
+            _maybeAutoBookNoSeat(booking);
+          }
+          if (mounted && booking.consumeResumePayment()) {
+            _showPaymentModal(booking);
+          }
         });
       }
     });
+  }
+
+  bool _shouldSkipSeatSelection(EventModel? event) {
+    if (event == null) return false;
+    return _noSeatTypes.contains(event.eventType);
+  }
+
+  Future<void> _maybeAutoBookNoSeat(BookingState booking) async {
+    if (_autoHandled) return;
+    final event = context.read<EventState>().primaryEvent;
+    if (!_shouldSkipSeatSelection(event)) return;
+    _autoHandled = true;
+
+    final desired = booking.desiredSeatCount;
+    final available = booking.seats
+        .where((s) => s.status == SeatStatus.available)
+        .take(desired)
+        .toList();
+    if (available.length < desired) {
+      if (!mounted) return;
+      context.showSnackBar(
+        'Only ${available.length} seats available. Please try a smaller quantity.',
+        isError: true,
+      );
+      return;
+    }
+
+    booking.applyRecommendedSeats(available.map((s) => s.id).toList());
+    final locked = await booking.lockSelection();
+    if (!mounted) return;
+    if (!locked) {
+      context.showSnackBar(
+        booking.errorMessage ?? 'Failed to reserve seats',
+        isError: true,
+      );
+      booking.clearError();
+      return;
+    }
+
+    final confirmed = await booking.confirmBooking();
+    if (!mounted) return;
+    if (!confirmed) {
+      context.showSnackBar(
+        booking.errorMessage ?? 'Booking failed',
+        isError: true,
+      );
+      booking.clearError();
+      return;
+    }
+
+    await _showPaymentModal(booking);
   }
 
   Future<void> _handleLock() async {
@@ -82,6 +149,11 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     chat.onBookingConfirmed();
     if (!mounted) return;
 
+    await _showPaymentModal(booking);
+  }
+
+  Future<void> _showPaymentModal(BookingState booking) async {
+    final chat = context.read<ChatState>();
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -104,6 +176,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                 amount: amount,
                 seatCount: state.lockedCount,
                 isProcessing: state.isLoading,
+                errorMessage: state.errorMessage,
                 onPaymentComplete: () async {
                   final paid = await state.processPayment();
                   if (!mounted) return;
@@ -122,11 +195,6 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                     }
                   } else {
                     if (!context.mounted) return;
-                    context.showSnackBar(
-                      state.errorMessage ?? 'Payment failed',
-                      isError: true,
-                    );
-                    state.clearError();
                   }
                 },
               ),
@@ -141,7 +209,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
     if (!mounted) return;
     context.read<ChatState>().onLockExpired();
     context.showSnackBar(
-        'Seat lock expired. Please select again.',
+        'Seats released. Please retry.',
         isError: true);
     context.read<BookingState>().fetchSeats();
   }
@@ -192,6 +260,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
       ),
       body: Consumer2<BookingState, EventState>(
         builder: (context, booking, eventState, _) {
+          final event = eventState.primaryEvent;
           // ── Initial loading ──
           if (booking.isLoading && !booking.hasSeats) {
             return AnimatedLoader(message: 'Loading seats...')
@@ -215,7 +284,8 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
             return _EmptyView(onRetry: booking.fetchSeats);
           }
 
-          final bool isLocked = booking.isLocked;
+            final bool isLocked = booking.isLocked;
+            final bool canConfirm = booking.remainingLockTime > Duration.zero;
           final int selectedCount =
               isLocked ? booking.lockedCount : booking.selectedSeats.length;
           final double eventPrice =
@@ -225,6 +295,10 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       (booking.lockedCount * eventPrice))
                   .toDouble()
               : (booking.selectedSeats.length * eventPrice).toDouble();
+
+          if (_shouldSkipSeatSelection(event)) {
+            return const AnimatedLoader(message: 'Preparing payment...');
+          }
 
           return Column(
             children: [
@@ -238,6 +312,37 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   ),
                 ),
 
+              if (booking.lockExpiredNotice)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.35),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline,
+                          size: 16, color: AppColors.warning),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Seats released. Please retry your selection.',
+                          style: AppTextStyles.caption,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: booking.fetchSeats,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+
               // ── AI recommended seats banner ──
               Consumer2<ChatState, BookingState>(
                 builder: (_, chat, booking, __) {
@@ -246,7 +351,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                   }
 
                   // Convert seat IDs → human-readable labels (e.g. "A6", "A7")
-                  String _rowLabel(int rowNum) {
+                  String rowLabel(int rowNum) {
                     String result = '';
                     int temp = rowNum;
                     while (temp > 0) {
@@ -264,7 +369,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                       .where((id) => booking.seats.any((s) => s.id == id))
                       .map((id) {
                         final seat = booking.seats.firstWhere((s) => s.id == id);
-                        return '${_rowLabel(seat.rowNumber)}${seat.seatNumber}';
+                        return '${rowLabel(seat.rowNumber)}${seat.seatNumber}';
                       })
                       .toList();
 
@@ -315,6 +420,7 @@ class _SeatSelectionScreenState extends State<SeatSelectionScreen> {
                 selectedCount: selectedCount,
                 total: total,
                 isLocked: isLocked,
+                canConfirm: canConfirm,
                 isLoading: booking.isLoading,
                 onAction: isLocked ? _handleConfirm : _handleLock,
               ),
@@ -332,6 +438,7 @@ class _BottomBar extends StatelessWidget {
   final int selectedCount;
   final double total;
   final bool isLocked;
+  final bool canConfirm;
   final bool isLoading;
   final VoidCallback? onAction;
 
@@ -339,6 +446,7 @@ class _BottomBar extends StatelessWidget {
     required this.selectedCount,
     required this.total,
     required this.isLocked,
+    required this.canConfirm,
     required this.isLoading,
     required this.onAction,
   });
@@ -395,16 +503,20 @@ class _BottomBar extends StatelessWidget {
               ),
             GradientButton(
               text: selectedCount == 0
-                  ? 'Select seats to continue'
-                  : isLocked
-                      ? 'Confirm & Pay  →'
-                      : 'Lock $selectedCount Seat${selectedCount > 1 ? 's' : ''}',
+                ? 'Select seats to continue'
+                : isLocked
+                  ? (canConfirm ? 'Confirm & Pay  →' : 'Seats released')
+                  : 'Lock $selectedCount Seat${selectedCount > 1 ? 's' : ''}',
               icon: isLocked
-                  ? Icons.payment_rounded
-                  : Icons.lock_outline_rounded,
+                ? Icons.payment_rounded
+                : Icons.lock_outline_rounded,
               gradient: isLocked ? AppColors.successGradient : null,
               isLoading: isLoading,
-              onPressed: selectedCount == 0 ? null : onAction,
+              onPressed: selectedCount == 0
+                ? null
+                : (isLocked && !canConfirm)
+                  ? null
+                  : onAction,
               width: double.infinity,
             ),
             const SizedBox(height: 6),

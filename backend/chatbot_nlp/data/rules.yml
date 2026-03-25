@@ -26,3 +26,48 @@ rules:
   steps:
   - intent: ask_booking_history
   - action: utter_booking_history
+
+- rule: Respond to nearby places
+  steps:
+  - intent: ask_places
+  - action: action_get_nearby_places
+
+- rule: Respond to fun requests
+  steps:
+  - intent: ask_fun
+  - action: action_get_nearby_places
+
+- rule: Respond to relax requests
+  steps:
+  - intent: ask_relax
+  - action: action_get_nearby_places
+
+- rule: Respond to food requests
+  steps:
+  - intent: ask_food
+  - action: action_get_nearby_places
+
+- rule: Respond to explore requests
+  steps:
+  - intent: ask_explore
+  - action: action_get_nearby_places
+
+- rule: Respond to trip planning requests
+  steps:
+  - intent: plan_trip
+  - action: action_plan_trip
+
+- rule: Respond to shorten plan requests
+  steps:
+  - intent: shorten_plan
+  - action: action_plan_trip
+
+- rule: Respond to extend plan requests
+  steps:
+  - intent: extend_plan
+  - action: action_plan_trip
+
+- rule: Respond to preference change requests
+  steps:
+  - intent: modify_preference
+  - action: action_plan_trip

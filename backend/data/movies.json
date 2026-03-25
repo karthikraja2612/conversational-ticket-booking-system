@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "title": "Shadow Run",
+    "genre": "Action",
+    "duration_min": 128,
+    "language": "English"
+  },
+  {
+    "id": 2,
+    "title": "Laugh Line",
+    "genre": "Comedy",
+    "duration_min": 110,
+    "language": "Tamil"
+  },
+  {
+    "id": 3,
+    "title": "Silent Lake",
+    "genre": "Drama",
+    "duration_min": 138,
+    "language": "English"
+  },
+  {
+    "id": 4,
+    "title": "Skyward",
+    "genre": "Adventure",
+    "duration_min": 124,
+    "language": "English"
+  },
+  {
+    "id": 5,
+    "title": "Midnight Signal",
+    "genre": "Thriller",
+    "duration_min": 119,
+    "language": "Tamil"
+  },
+  {
+    "id": 6,
+    "title": "City Pulse",
+    "genre": "Romance",
+    "duration_min": 132,
+    "language": "Tamil"
+  },
+  {
+    "id": 7,
+    "title": "Circuit Breaker",
+    "genre": "Sci-Fi",
+    "duration_min": 142,
+    "language": "English"
+  },
+  {
+    "id": 8,
+    "title": "Green Milepost",
+    "genre": "Family",
+    "duration_min": 105,
+    "language": "Tamil"
+  },
+  {
+    "id": 9,
+    "title": "The Last Bloom",
+    "genre": "Drama",
+    "duration_min": 126,
+    "language": "English"
+  },
+  {
+    "id": 10,
+    "title": "Rider X",
+    "genre": "Action",
+    "duration_min": 134,
+    "language": "Tamil"
+  }
+]
